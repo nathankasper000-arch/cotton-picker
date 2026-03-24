@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cotton Picker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Courier New", monospace;
+            background: #c8d8b0;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* TOP BAR */
+        #topbar {
+            background: #f0ead8;
+            border-bottom: 3px solid #5a7a3a;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #topbar h1 { font-size: 22px; color: #2a4a1a; letter-spacing: 1px; }
+        #stats-display { font-size: 16px; color: #3a5a2a; text-align: center; }
+        #stats-display span { font-weight: bold; color: #1a3a0a; }
+
+        /* MAIN LAYOUT */
+        #layout {
+            display: flex;
+            gap: 0;
+            align-items: flex-start;
+            padding: 16px;
+        }
+
+        /* LEFT: CRATE */
+        #cratePanel {
+            width: 160px;
+            flex-shrink: 0;
+            background: #f0ead8;
+            border: 2px solid #5a7a3a;
+            padding: 12px 10px;
+            margin-right: 14px;
+        }
+        #cratePanel h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #5a7a3a;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+        #crateIcon {
+            width: 60px; height: 52px;
+            margin: 0 auto 10px;
+            cursor: pointer; position: relative; display: block;
+            transition: transform 0.1s;
+        }
+        #crateIcon:hover  { transform: scale(1.08); }
+        #crateIcon:active { transform: scale(0.92); }
+        .crate-body { width: 60px; height: 40px; background: #b87830; border: 2px solid #6a4010; position: absolute; bottom: 0; left: 0; }
+        .crate-lid  { width: 66px; height: 13px; background: #cc8c40; border: 2px solid #6a4010; position: absolute; top: 0; left: -3px; }
+        .crate-strap-h { position: absolute; bottom: 11px; left: 0; width: 60px; height: 5px; background: #6a4010; }
+        .crate-strap-v { position: absolute; bottom: 0; left: 25px; width: 10px; height: 40px; background: #6a4010; }
+
+        #openCrateBtn {
+            width: 100%;
+            font-family: "Courier New", monospace;
+            font-size: 12px; padding: 7px 4px;
+            background: #4a7a2a; color: #f0ead8;
+            border: 2px solid #2a5a0a; cursor: pointer; font-weight: bold;
+        }
+        #openCrateBtn:hover    { background: #3a6a1a; }
+        #openCrateBtn:disabled { background: #888; border-color: #666; cursor: not-allowed; }
+        #crateCostLine   { font-size: 11px; color: #666; margin-top: 5px; }
+        #crateOpensLine  { font-size: 10px; color: #999; margin-top: 2px; }
+        #crateScaleLine  { font-size: 10px; color: #b85020; margin-top: 2px; font-weight: bold; }
+        #crateBuffBlock  {
+            margin-top: 10px; border-top: 1px solid #ccc; padding-top: 8px;
+            font-size: 11px; color: #3a6a1a; font-weight: bold; min-height: 24px;
+        }
+        #buffTimer { font-size: 10px; color: #888; font-weight: normal; margin-top: 2px; }
+
+        /* CENTRE */
+        #centre { flex: 1; display: flex; flex-direction: column; align-items: center; }
+
+        #gameArea {
+            position: relative; width: 860px; height: 560px;
+            border: 3px solid #5a7a3a;
+            background-image: url('images/background.png');
+            background-size: cover; background-position: center;
+            overflow: hidden;
+        }
+        #cottonButton {
+            width: 380px; cursor: pointer;
+            position: absolute; left: 240px; top: 190px;
+        }
+        .worker { position: absolute; width: 80px; }
+        .manor  { pointer-events: none; width: 195px; } /* 1.5x bigger = 130 * 1.5 */
+
+        @keyframes clickPop {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(0.85); }
+            100% { transform: scale(1); }
+        }
+        .clicked { animation: clickPop 0.16s ease; }
+
+        .popNumber {
+            position: fixed; color: #1a4a0a; font-weight: bold;
+            pointer-events: none; font-size: 17px;
+            font-family: "Courier New", monospace;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0%   { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+
+        /* SHOP */
+        #shopPanel {
+            width: 860px; margin-top: 12px;
+            background: #f0ead8; border: 2px solid #5a7a3a;
+            padding: 12px 14px;
+        }
+        #shopPanel h3 {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+            color: #5a7a3a; border-bottom: 1px solid #ccc;
+            padding-bottom: 6px; margin-bottom: 10px;
+        }
+        .shop-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .shop-row-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
+
+        .shopbtn {
+            font-family: "Courier New", monospace; font-size: 13px;
+            padding: 8px 14px; background: #f0ead8;
+            border: 2px solid #5a7a3a; cursor: pointer; color: #2a4a1a;
+            white-space: nowrap;
+        }
+        .shopbtn:hover   { background: #e0d4b8; }
+        .shopbtn.locked  { opacity: 0.4; cursor: not-allowed; background: #e8e4d8; border-color: #aaa; color: #888; }
+        .shopbtn.bought  { text-decoration: line-through; opacity: 0.35; cursor: not-allowed; }
+        .shopbtn.tier1   { border-color: #6a9a3a; }
+        .shopbtn.tier2   { border-color: #3a6aaa; }
+        .shopbtn.tier3   { border-color: #8a3aaa; }
+        .shopbtn.field-upgrade  { border-color: #aa7a2a; }
+        .shopbtn.manor-upgrade  { border-color: #8a3030; }
+
+        /* RIGHT: ACHIEVEMENTS */
+        #achievePanel {
+            width: 180px; flex-shrink: 0;
+            background: #f0ead8; border: 2px solid #5a7a3a;
+            padding: 12px 10px; margin-left: 14px;
+            max-height: 780px; overflow-y: auto;
+        }
+        #achievePanel h3 {
+            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+            color: #5a7a3a; border-bottom: 1px solid #aaa;
+            padding-bottom: 6px; margin-bottom: 10px;
+        }
+        .ach-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 4px; margin-bottom: 4px;
+            border: 1px solid #ccc; background: #e8e4d8;
+            font-size: 11px; opacity: 0.38;
+        }
+        .ach-item.unlocked { background: #f5eecc; border-color: #b89830; opacity: 1; }
+        .ach-badge {
+            width: 26px; height: 26px; background: #ccc; border: 2px solid #aaa;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 9px; font-weight: bold; color: #777;
+        }
+        .ach-item.unlocked .ach-badge { background: #b89830; border-color: #8a6820; color: #fff; }
+        .ach-name { font-weight: bold; display: block; color: #222; font-size: 11px; }
+        .ach-desc { color: #888; font-size: 10px; }
+        #achCount { font-size: 10px; color: #999; margin-top: 6px; text-align: center; }
+
+        /* TOAST */
+        #achievementToast {
+            position: fixed; bottom: 50px; left: 50%;
+            transform: translateX(-50%);
+            background: #f0ead8; border: 2px solid #b89830;
+            padding: 8px 18px; font-size: 14px; display: none;
+            z-index: 9999; color: #333; white-space: nowrap;
+            font-family: "Courier New", monospace;
+        }
+        @keyframes fadeInOut {
+            0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+            15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+            75%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* CRATE MODAL */
+        #crateModal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55); z-index: 2000;
+            align-items: center; justify-content: center;
+        }
+        #crateModal.open { display: flex; }
+        #crateModalBox {
+            background: #f0ead8; border: 3px solid #5a7a3a;
+            padding: 24px 22px 20px; width: 620px; max-width: 95vw;
+            text-align: center; font-family: "Courier New", monospace;
+        }
+        #crateModalBox h2 {
+            font-size: 16px; color: #2a4a1a;
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+        }
+        #spinnerTrack {
+            overflow: hidden; width: 100%; height: 100px;
+            border: 2px solid #5a7a3a; position: relative; background: #e8e4d8;
+        }
+        #spinnerTrack::before {
+            content: ''; position: absolute; top: 0; bottom: 0; left: 50%;
+            width: 2px; background: #4a7a2a; z-index: 10; transform: translateX(-50%);
+        }
+        #spinnerArrow {
+            position: absolute; top: -1px; left: calc(50% - 8px);
+            width: 0; height: 0; z-index: 11;
+            border-left: 8px solid transparent; border-right: 8px solid transparent;
+            border-top: 13px solid #4a7a2a;
+        }
+        #spinnerInner { display: flex; align-items: center; height: 100%; will-change: transform; }
+        .spinItem {
+            min-width: 116px; height: 92px; margin: 0 3px;
+            border: 2px solid transparent; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold; flex-shrink: 0;
+            padding: 4px 6px; line-height: 1.3; text-align: center;
+        }
+        .spinItem .spin-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 3px; }
+        .spinItem .spin-main   { font-size: 12px; font-weight: bold; }
+        .spinItem.rarity-grey   { background: #e4e0d8; border-color: #aaa;    color: #555; }
+        .spinItem.rarity-blue   { background: #d8e4f0; border-color: #5580bb; color: #2a5088; }
+        .spinItem.rarity-purple { background: #e8daf0; border-color: #8855bb; color: #5a2a88; }
+        .spinItem.rarity-pink   { background: #f0d8e4; border-color: #bb5580; color: #882a55; }
+        .spinItem.rarity-gold   { background: #f0e8c0; border-color: #c09830; color: #7a5800; }
+
+        #spinResult {
+            display: none; margin-top: 14px; padding: 12px 16px;
+            animation: resultPop 0.3s cubic-bezier(.17,.67,.35,1.4);
+            text-align: left; border: 2px solid transparent;
+        }
+        @keyframes resultPop {
+            0%   { transform: scale(0.6); opacity: 0; }
+            100% { transform: scale(1);   opacity: 1; }
+        }
+        #spinResult .result-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 4px; opacity: 0.6; }
+        #spinResult .result-name   { font-size: 16px; font-weight: bold; display: block; }
+        #spinResult .result-desc   { font-size: 12px; font-weight: normal; margin-top: 3px; display: block; opacity: 0.8; }
+        #spinResult.rarity-grey   { background: #e4e0d8; border-color: #aaa;    color: #444; }
+        #spinResult.rarity-blue   { background: #d8e4f0; border-color: #5580bb; color: #1a4077; }
+        #spinResult.rarity-purple { background: #e8daf0; border-color: #8855bb; color: #4a1a77; }
+        #spinResult.rarity-pink   { background: #f0d8e4; border-color: #bb5580; color: #771a4a; }
+        #spinResult.rarity-gold   { background: #f0e8c0; border-color: #c09830; color: #5a3800; }
+
+        #closeModalBtn {
+            margin-top: 12px; background: #4a7a2a; color: #f0ead8;
+            border: 2px solid #2a5a0a; padding: 8px 26px;
+            font-size: 14px; cursor: pointer; display: none;
+            font-family: "Courier New", monospace; font-weight: bold;
+        }
+        #closeModalBtn:hover { background: #3a6a1a; }
+
+        /* RESET */
+        #resetBtn {
+            position: fixed; bottom: 16px; right: 16px;
+            font-family: "Courier New", monospace;
+            font-size: 12px; padding: 6px 12px;
+            background: #f0ead8; border: 2px solid #aaa; color: #888; cursor: pointer;
+        }
+        #resetBtn:hover { background: #e8e0d0; }
+    </style>
+</head>
+<body>
+
+<div id="topbar">
+    <h1>Cotton Picker</h1>
+    <div id="stats-display">
+        Cotton: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span>
+    </div>
+    <div></div>
+</div>
+
+<div id="layout">
+
+    <!-- LEFT: CRATE -->
+    <div id="cratePanel">
+        <h3>Supply Crate</h3>
+        <div id="crateIcon" onclick="openCrateModal()" title="Open a crate">
+            <div class="crate-lid"></div>
+            <div class="crate-body">
+                <div class="crate-strap-v"></div>
+                <div class="crate-strap-h"></div>
+            </div>
+        </div>
+        <button id="openCrateBtn" onclick="openCrateModal()">Open Crate</button>
+        <div id="crateCostLine">Cost: <span id="crateCostVal">500</span> cotton</div>
+        <div id="crateOpensLine">Opened: <span id="crateOpensVal">0</span></div>
+        <div id="crateScaleLine" style="display:none">2x price after 10!</div>
+        <div id="crateBuffBlock">No active buff<div id="buffTimer"></div></div>
+    </div>
+
+    <!-- CENTRE -->
+    <div id="centre">
+        <div id="gameArea">
+            <img src="images/cotton.png" id="cottonButton">
+        </div>
+
+        <!-- SHOP -->
+        <div id="shopPanel">
+            <h3>Shop</h3>
+
+            <div class="shop-row-label">Producers</div>
+            <div class="shop-row">
+                <button class="shopbtn" id="buyWorker">Hire Worker (10 cotton)</button>
+                <button class="shopbtn" id="buyField">Buy Field (7,500 cotton)</button>
+                <button class="shopbtn" id="buyManor">Build Manor (60,000 cotton)</button>
+            </div>
+
+            <div class="shop-row-label" style="margin-top:8px;">Click Upgrades</div>
+            <div class="shop-row">
+                <button class="shopbtn tier1" id="clickUpgrade1Btn">2x Clicker I (150 cotton)</button>
+                <button class="shopbtn tier2 locked" id="clickUpgrade2Btn">2x Clicker II (1,000 cotton)</button>
+                <button class="shopbtn tier3 locked" id="clickUpgrade3Btn">2x Clicker III (2,500 cotton)</button>
+            </div>
+
+            <div class="shop-row-label" style="margin-top:8px;">Worker Upgrades</div>
+            <div class="shop-row">
+                <button class="shopbtn tier1" id="workerUpgrade1Btn">2x Workers I (1,000 cotton)</button>
+                <button class="shopbtn tier2 locked" id="workerUpgrade2Btn">2x Workers II (3,000 cotton)</button>
+                <button class="shopbtn tier3 locked" id="workerUpgrade3Btn">2x Workers III (5,000 cotton)</button>
+            </div>
+
+            <div class="shop-row-label" style="margin-top:8px;">Field Upgrades</div>
+            <div class="shop-row">
+                <button class="shopbtn field-upgrade" id="fieldUpgrade1Btn">2x Field Output I (42,000 cotton)</button>
+                <button class="shopbtn field-upgrade locked" id="fieldUpgrade2Btn">2x Field Output II (150,000 cotton)</button>
+                <button class="shopbtn field-upgrade locked" id="fieldUpgrade3Btn">2x Field Output III (320,000 cotton)</button>
+            </div>
+
+            <div class="shop-row-label" style="margin-top:8px;">Manor Upgrades</div>
+            <div class="shop-row">
+                <button class="shopbtn manor-upgrade" id="manorUpgrade1Btn">2x Manor Output (400,000 cotton)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: ACHIEVEMENTS -->
+    <div id="achievePanel">
+        <h3>Achievements</h3>
+        <div id="achievementList"></div>
+        <div id="achCount">0 / 13 unlocked</div>
+    </div>
+
+</div>
+
+<!-- CRATE MODAL -->
+<div id="crateModal">
+    <div id="crateModalBox">
+        <h2 id="crateModalTitle">Opening Crate</h2>
+        <div id="spinnerTrack">
+            <div id="spinnerArrow"></div>
+            <div id="spinnerInner"></div>
+        </div>
+        <div id="spinResult"></div>
+        <button id="closeModalBtn" onclick="closeCrateModal()">Collect Reward</button>
+    </div>
+</div>
+
+<div id="achievementToast"></div>
+<button id="resetBtn" onclick="resetGame()">Reset</button>
+
+<script src="script.js"></script>
+</body>
+</html>
