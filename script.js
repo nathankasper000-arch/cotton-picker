@@ -13,12 +13,47 @@ function confirmBusinessName() {
     saveGame();
 }
 
-// Allow Enter key to confirm
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('businessNameInput').addEventListener('keydown', e => {
+    const input = document.getElementById('businessNameInput');
+    if (input) input.addEventListener('keydown', e => {
         if (e.key === 'Enter') confirmBusinessName();
     });
+    const secretInput = document.getElementById('secretInput');
+    if (secretInput) secretInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitSecretCode();
+        if (e.key === 'Escape') closeSecretModal();
+    });
 });
+
+// =====================
+// SECRET CODE
+// =====================
+function openSecretModal() {
+    const modal = document.getElementById('secretModal');
+    modal.style.display = 'flex';
+    document.getElementById('secretInput').value = '';
+    document.getElementById('secretMsg').textContent = '';
+    setTimeout(() => document.getElementById('secretInput').focus(), 50);
+}
+function closeSecretModal() {
+    document.getElementById('secretModal').style.display = 'none';
+}
+function submitSecretCode() {
+    const val = document.getElementById('secretInput').value.trim().toLowerCase();
+    const msg = document.getElementById('secretMsg');
+    if (val === 'mastakandy') {
+        addCotton(1000000000);
+        msg.style.color = '#2a6a0a';
+        msg.textContent = '+1,000,000,000 cotton!';
+        setTimeout(closeSecretModal, 1200);
+        showFloatingMsg('Secret code redeemed! +1 billion cotton.');
+        saveGame();
+    } else {
+        msg.style.color = '#aa3030';
+        msg.textContent = 'Wrong code.';
+        document.getElementById('secretInput').value = '';
+    }
+}
 
 // =====================
 // GAME VARIABLES
@@ -44,8 +79,52 @@ let fieldCost = baseFieldCost;
 let fieldIncome = 25;
 
 let clickMultiplier = 1;
-let mastersTouchActive = false; // flat +70 per click when bought
+let mastersTouchActive = false; // flat bonus per click when bought
 let workerMultiplier = 1;
+
+// Price caps
+const MAX_WORKER_COST  = 250000;
+const MAX_FIELD_COST   = 1850000;
+const MAX_MANOR_COST   = 5000000;
+
+// =====================
+// MASTERS TOUCH LEVELING
+// =====================
+let mastersTouchLevel   = 0;
+let mastersTouchClicks  = 0;
+let mastersTouchBonus   = 0; // flat bonus per click from leveling
+function mastersTouchClicksNeeded() { return Math.round(5 * Math.pow(3, mastersTouchLevel)); }
+function mastersTouchProgress()     { return mastersTouchClicks / mastersTouchClicksNeeded(); }
+function tryMastersTouchLevelUp() {
+    if (!mastersTouchActive) return;
+    if (mastersTouchClicks >= mastersTouchClicksNeeded()) {
+        mastersTouchClicks -= mastersTouchClicksNeeded();
+        mastersTouchLevel++;
+        mastersTouchBonus += 5;
+        showLevelUpNotification();
+        updateMastersTouchBar();
+    }
+}
+function showLevelUpNotification() {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:22%;left:50%;transform:translateX(-50%);background:#4a2a8a;color:#f0ead8;padding:12px 24px;font-size:16px;font-family:"Courier New",monospace;font-weight:bold;z-index:9999;pointer-events:none;animation:fadeInOut 3s forwards;border:2px solid #8a5acc;';
+    el.textContent = 'Masters Touch Level ' + mastersTouchLevel + '!  +' + mastersTouchBonus + ' per click total';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
+function updateMastersTouchBar() {
+    const bar = document.getElementById('mastersTouchBar');
+    if (!bar) return;
+    bar.style.display = mastersTouchActive ? 'block' : 'none';
+    const fill  = document.getElementById('mastersTouchFill');
+    const label = document.getElementById('mastersTouchLabel');
+    const pct   = Math.min(mastersTouchProgress() * 100, 100);
+    if (fill)  fill.style.width = pct + '%';
+    if (label) label.textContent =
+        'Masters Touch  Lv.' + mastersTouchLevel +
+        '  (' + mastersTouchClicks + ' / ' + mastersTouchClicksNeeded() + ' clicks)' +
+        '  +' + mastersTouchBonus + '/click bonus';
+}
 
 // Upgrade flags
 let clickUpgrade1Bought  = false;
@@ -67,14 +146,24 @@ let manorUpgrade3Bought  = false;
 // =====================
 let overseers = 0;
 const BASE_OVERSEER_COST = 1000000;
+const MAX_OVERSEER_COST  = 30000000;
 let overseerCost = BASE_OVERSEER_COST;
-const overseerIncome = 110; // cotton per second each
-const OVERSEER_WORKER_MULT_PER = 0.3; // +0.3 to workerMultiplier per overseer
+let overseerIncome = 160; // cotton per second each (doubled by overseer upgrades)
+let overseerUpgrade1Bought = false;
+let overseerUpgrade2Bought = false;
 
+// Each overseer N adds (0.3 + (N-1)*0.1) to the total multiplier
+// Overseer 1 = +0.3, overseer 2 = +0.4, overseer 3 = +0.5, etc.
 function getOverseerWorkerMult() {
-    // Each overseer adds +0.3 multiplicative bonus on top of base 1
-    // so 0 overseers = x1, 1 = x1.3, 2 = x1.6, etc.
-    return 1 + overseers * OVERSEER_WORKER_MULT_PER;
+    // Sum of arithmetic series: base 1 + sum of (0.3, 0.4, 0.5 ...) for each overseer
+    // overseer i (1-indexed) contributes 0.3 + (i-1)*0.1
+    let bonus = 0;
+    for (let i = 1; i <= overseers; i++) {
+        bonus += 0.3 + (i - 1) * 0.1;
+    }
+    // If overseer upgrade 2 is bought, double the bonus portion
+    const upgradeMult = overseerUpgrade2Bought ? 2 : 1;
+    return 1 + bonus * upgradeMult;
 }
 
 // =====================
@@ -212,7 +301,7 @@ function reschedulePassive(ms) {
 // UPGRADE GRANTS
 // =====================
 const ALL_UPGRADE_IDS = ['click1','click2','click3','click4','worker1','worker2','worker3',
-                         'field1','field2','field3','manor1','manor2','manor3'];
+                         'field1','field2','field3','manor1','manor2','manor3','overseer1','overseer2'];
 
 function grantFreeUpgrade() {
     for (const id of ALL_UPGRADE_IDS) {
@@ -247,7 +336,9 @@ function canGrantUpgrade(id) {
     if (id==='field3')  return fieldUpgrade2Bought  && !fieldUpgrade3Bought;
     if (id==='manor1')  return !manorUpgrade1Bought;
     if (id==='manor2')  return manorUpgrade1Bought  && !manorUpgrade2Bought;
-    if (id==='manor3')  return manorUpgrade2Bought  && !manorUpgrade3Bought;
+    if (id==='manor3')    return manorUpgrade2Bought  && !manorUpgrade3Bought;
+    if (id==='overseer1') return !overseerUpgrade1Bought;
+    if (id==='overseer2') return overseerUpgrade1Bought && !overseerUpgrade2Bought;
     return false;
 }
 function tryGrantUpgrade(id) { if (!canGrantUpgrade(id)) return false; applyUpgrade(id); return true; }
@@ -264,7 +355,9 @@ function applyUpgrade(id) {
     if (id==='field3')  { fieldIncome      *= 2; fieldUpgrade3Bought  = true; }
     if (id==='manor1')  { manorIncome      *= 2; manorUpgrade1Bought  = true; }
     if (id==='manor2')  { manorIncome      *= 2; manorUpgrade2Bought  = true; }
-    if (id==='manor3')  { manorIncome      *= 2; manorUpgrade3Bought  = true; }
+    if (id==='manor3')    { manorIncome *= 2; manorUpgrade3Bought = true; }
+    if (id==='overseer1') { overseerIncome *= 2; overseerUpgrade1Bought = true; }
+    if (id==='overseer2') { overseerIncome *= 2; overseerUpgrade2Bought = true; }
     syncUpgradeButtons();
 }
 
@@ -488,9 +581,11 @@ function syncUpgradeButtons() {
     set('fieldUpgrade1Btn',  fieldUpgrade1Bought,  false);
     set('fieldUpgrade2Btn',  fieldUpgrade2Bought,  !fieldUpgrade1Bought);
     set('fieldUpgrade3Btn',  fieldUpgrade3Bought,  !fieldUpgrade2Bought);
-    set('manorUpgrade1Btn',  manorUpgrade1Bought,  false);
-    set('manorUpgrade2Btn',  manorUpgrade2Bought,  !manorUpgrade1Bought);
-    set('manorUpgrade3Btn',  manorUpgrade3Bought,  !manorUpgrade2Bought);
+    set('manorUpgrade1Btn',    manorUpgrade1Bought,    false);
+    set('manorUpgrade2Btn',    manorUpgrade2Bought,    !manorUpgrade1Bought);
+    set('manorUpgrade3Btn',    manorUpgrade3Bought,    !manorUpgrade2Bought);
+    set('overseerUpgrade1Btn', overseerUpgrade1Bought, false);
+    set('overseerUpgrade2Btn', overseerUpgrade2Bought, !overseerUpgrade1Bought);
 }
 
 function attachUpgradeHandlers() {
@@ -511,9 +606,11 @@ function attachUpgradeHandlers() {
     buy('fieldUpgrade1Btn',  42000,  'field1',  () => fieldUpgrade1Bought);
     buy('fieldUpgrade2Btn',  150000, 'field2',  () => fieldUpgrade2Bought);
     buy('fieldUpgrade3Btn',  320000, 'field3',  () => fieldUpgrade3Bought);
-    buy('manorUpgrade1Btn',  400000, 'manor1',  () => manorUpgrade1Bought);
-    buy('manorUpgrade2Btn',  700000, 'manor2',  () => manorUpgrade2Bought);
-    buy('manorUpgrade3Btn',  920000, 'manor3',  () => manorUpgrade3Bought);
+    buy('manorUpgrade1Btn',    400000,  'manor1',    () => manorUpgrade1Bought);
+    buy('manorUpgrade2Btn',    700000,  'manor2',    () => manorUpgrade2Bought);
+    buy('manorUpgrade3Btn',    920000,  'manor3',    () => manorUpgrade3Bought);
+    buy('overseerUpgrade1Btn', 4000000, 'overseer1', () => overseerUpgrade1Bought);
+    buy('overseerUpgrade2Btn', 7650000, 'overseer2', () => overseerUpgrade2Bought);
 }
 attachUpgradeHandlers();
 
@@ -522,11 +619,17 @@ attachUpgradeHandlers();
 // =====================
 document.getElementById('cottonButton').onclick = function(e) {
     const base   = 1 * clickMultiplier * crateClickBonus;
-    const bonus  = mastersTouchActive ? 70 : 0;
+    const bonus  = mastersTouchActive ? (70 + mastersTouchBonus) : 0;
     const gained = base + bonus;
     addCotton(gained);
     showPopNumber(e.clientX, e.clientY, Math.floor(gained));
     this.classList.remove('clicked'); void this.offsetWidth; this.classList.add('clicked');
+    // Masters Touch leveling
+    if (mastersTouchActive) {
+        mastersTouchClicks++;
+        tryMastersTouchLevelUp();
+        updateMastersTouchBar();
+    }
     updateDisplay();
 };
 
@@ -547,7 +650,7 @@ document.getElementById('buyWorker').onclick = function() {
     if (cotton >= workerCost) {
         cotton -= workerCost; workers++;
         spawnWorker();
-        workerCost = Math.floor(workerCost * 1.2);
+        workerCost = Math.min(Math.floor(workerCost * 1.2), MAX_WORKER_COST);
         updateDisplay();
     }
 };
@@ -577,7 +680,7 @@ document.getElementById('buyField').onclick = function() {
         cotton -= fieldCost;
         spawnField(fields.length);
         fields.push(true);
-        fieldCost = Math.floor(fieldCost * 1.4);
+        fieldCost = Math.min(Math.floor(fieldCost * 1.4), MAX_FIELD_COST);
         updateDisplay();
     }
 };
@@ -598,19 +701,22 @@ document.getElementById('buyManor').onclick = function() {
     if (cotton >= manorCost) {
         cotton -= manorCost; manors++;
         spawnManor(manors - 1);
-        manorCost = Math.floor(BASE_MANOR_COST * Math.pow(1.3, manors));
+        manorCost = Math.min(Math.floor(BASE_MANOR_COST * Math.pow(1.3, manors)), MAX_MANOR_COST);
         updateDisplay();
     }
 };
 function spawnManor(index) {
     const m = document.createElement('img');
     m.src = 'images/manor.png'; m.className = 'manor';
+    // Position relative to gameArea using absolute page coordinates (not fixed/viewport)
     const gR = gameArea.getBoundingClientRect();
-    m.style.position = 'fixed';
-    m.style.left = Math.max(0, gR.left - 210) + 'px';
-    m.style.top  = (gR.top + 10 + 175 * index) + 'px';
-    m.style.width = '195px';
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+    m.style.position      = 'absolute';
     m.style.pointerEvents = 'none';
+    m.style.width         = '195px';
+    m.style.left = (gR.left + scrollX - 210) + 'px';
+    m.style.top  = (gR.top  + scrollY + 10 + 175 * index) + 'px';
     document.body.appendChild(m);
 }
 
@@ -622,11 +728,9 @@ document.getElementById('buyOverseer').onclick = function() {
         cotton -= overseerCost;
         overseers++;
         spawnOverseer();
-        overseerCost = Math.round(BASE_OVERSEER_COST * Math.pow(1.36, overseers));
-        // First overseer — show a popup about the multiplier
-        if (overseers === 1) {
-            showFloatingMsg('Overseer hired! Workers now x' + getOverseerWorkerMult().toFixed(1));
-        }
+        overseerCost = Math.min(Math.round(BASE_OVERSEER_COST * Math.pow(1.36, overseers)), MAX_OVERSEER_COST);
+        const mult = getOverseerWorkerMult().toFixed(2);
+        showFloatingMsg('Overseer hired! Workers now x' + mult);
         updateDisplay();
     }
 };
@@ -691,128 +795,4 @@ function updateDisplay() {
         } else {
             multLine.style.display = 'none';
         }
-    }
-
-    syncUpgradeButtons();
-}
-
-// =====================
-// PASSIVE INCOME TICK
-// =====================
-function passiveTick() {
-    if (fastFortuneActive && Date.now() >= fastFortuneEnd) {
-        fastFortuneActive = false;
-        reschedulePassive(1000);
-        updateBuffDisplay(); updateDisplay();
-    }
-    const ovMult = getOverseerWorkerMult();
-    const wCps = workers  * cottonPerWorker * workerMultiplier * ovMult * crateWorkerBonus;
-    const fCps = fields.length * fieldIncome  * crateWorkerBonus;
-    const mCps = manors   * manorIncome       * crateWorkerBonus;
-    const oCps = overseers * overseerIncome   * crateWorkerBonus;
-    addCotton(wCps + fCps + mCps + oCps);
-    updateDisplay();
-}
-reschedulePassive(1000);
-
-// =====================
-// RESET
-// =====================
-function resetGame() {
-    if (!confirm('Reset everything?')) return;
-    localStorage.removeItem('cottonPickerSave');
-    location.reload();
-}
-
-// =====================
-// SAVE / LOAD
-// =====================
-function saveGame() {
-    localStorage.setItem('cottonPickerSave', JSON.stringify({
-        businessName,
-        cotton, totalCottonEarned,
-        workers, workerCost,
-        overseers, overseerCost,
-        manors, manorCost, manorIncome,
-        fields: fields.length, fieldCost, fieldIncome,
-        clickMultiplier, mastersTouchActive, workerMultiplier,
-        clickUpgrade1Bought, clickUpgrade2Bought, clickUpgrade3Bought, clickUpgrade4Bought,
-        workerUpgrade1Bought, workerUpgrade2Bought, workerUpgrade3Bought,
-        fieldUpgrade1Bought, fieldUpgrade2Bought, fieldUpgrade3Bought,
-        manorUpgrade1Bought, manorUpgrade2Bought, manorUpgrade3Bought,
-        unlockedAchievements: [...unlockedAchievements],
-        crateOpens,
-        activeBuff: activeBuff ? { label: activeBuff.label, endTime: activeBuff.endTime } : null,
-        fastFortuneActive, fastFortuneEnd,
-        crateClickBonus, crateWorkerBonus,
-    }));
-}
-
-function loadGame() {
-    const s = JSON.parse(localStorage.getItem('cottonPickerSave'));
-
-    if (s && s.businessName) {
-        businessName = s.businessName;
-        document.getElementById('namingOverlay').style.display = 'none';
-        document.getElementById('businessNameDisplay').textContent = businessName;
-    }
-
-    if (!s) { renderAchievements(); syncUpgradeButtons(); updateDisplay(); return; }
-
-    cotton            = s.cotton            || 0;
-    displayedCotton   = cotton; // start smooth counter at current value
-    totalCottonEarned = s.totalCottonEarned || s.cotton || 0;
-    workers           = s.workers           || 0;
-    workerCost        = s.workerCost        || 10;
-    overseers         = s.overseers         || 0;
-    overseerCost      = s.overseerCost      || BASE_OVERSEER_COST;
-    manors            = s.manors            || 0;
-    manorCost         = s.manorCost         || BASE_MANOR_COST;
-    manorIncome       = s.manorIncome       || 75;
-    fields            = Array(s.fields || 0).fill(true);
-    fieldCost         = s.fieldCost         || baseFieldCost;
-    fieldIncome       = s.fieldIncome       || 25;
-    clickMultiplier   = s.clickMultiplier   || 1;
-    mastersTouchActive= s.mastersTouchActive || false;
-    workerMultiplier  = s.workerMultiplier  || 1;
-
-    clickUpgrade1Bought  = s.clickUpgrade1Bought  || false;
-    clickUpgrade2Bought  = s.clickUpgrade2Bought  || false;
-    clickUpgrade3Bought  = s.clickUpgrade3Bought  || false;
-    clickUpgrade4Bought  = s.clickUpgrade4Bought  || false;
-    workerUpgrade1Bought = s.workerUpgrade1Bought || false;
-    workerUpgrade2Bought = s.workerUpgrade2Bought || false;
-    workerUpgrade3Bought = s.workerUpgrade3Bought || false;
-    fieldUpgrade1Bought  = s.fieldUpgrade1Bought  || false;
-    fieldUpgrade2Bought  = s.fieldUpgrade2Bought  || false;
-    fieldUpgrade3Bought  = s.fieldUpgrade3Bought  || false;
-    manorUpgrade1Bought  = s.manorUpgrade1Bought  || false;
-    manorUpgrade2Bought  = s.manorUpgrade2Bought  || false;
-    manorUpgrade3Bought  = s.manorUpgrade3Bought  || false;
-
-    crateOpens       = s.crateOpens       || 0;
-    crateClickBonus  = s.crateClickBonus  || 1;
-    crateWorkerBonus = s.crateWorkerBonus || 1;
-
-    if (s.unlockedAchievements) unlockedAchievements = new Set(s.unlockedAchievements);
-
-    if (s.activeBuff && s.activeBuff.endTime > Date.now()) {
-        activeBuff = s.activeBuff; startBuffTimer();
-    }
-    if (s.fastFortuneActive && s.fastFortuneEnd > Date.now()) {
-        fastFortuneActive = true; fastFortuneEnd = s.fastFortuneEnd;
-        reschedulePassive(500); startFastFortuneTimer();
-    }
-
-    for (let i = 0; i < workers; i++) spawnWorker();
-    for (let i = 0; i < overseers; i++) spawnOverseer();
-    for (let i = 0; i < fields.length; i++) spawnField(i);
-    for (let i = 0; i < manors; i++) spawnManor(i);
-
-    syncUpgradeButtons();
-    renderAchievements();
-    updateDisplay();
-}
-
-loadGame();
-setInterval(saveGame, 5000);
+    
