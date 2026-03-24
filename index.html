@@ -359,13 +359,28 @@
 <!-- TOP BAR -->
 <div id="topbar">
     <div id="topbar-left">
-        <h1>Cotton Picker</h1>
+        <h1 id="titleBtn" onclick="openSecretModal()" style="cursor:pointer;user-select:none;" title="">Cotton Picker</h1>
         <div id="businessNameDisplay"></div>
     </div>
     <div id="stats-display">
         Cotton: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span>
     </div>
     <div></div>
+</div>
+
+<!-- SECRET CODE MODAL -->
+<div id="secretModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;align-items:center;justify-content:center;">
+    <div style="background:#f0ead8;border:2px solid #5a7a3a;padding:28px 32px;text-align:center;font-family:'Courier New',monospace;width:320px;">
+        <div style="font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#5a7a3a;margin-bottom:14px;">Enter Code</div>
+        <input id="secretInput" type="password" maxlength="32"
+            style="font-family:'Courier New',monospace;font-size:16px;padding:8px 12px;border:2px solid #5a7a3a;background:#faf8f3;color:#2a4a1a;width:100%;margin-bottom:12px;outline:none;"
+            placeholder="..." />
+        <div id="secretMsg" style="font-size:12px;color:#aa3030;min-height:16px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+            <button onclick="submitSecretCode()" style="font-family:'Courier New',monospace;font-size:13px;padding:7px 20px;background:#4a7a2a;color:#f0ead8;border:2px solid #2a5a0a;cursor:pointer;font-weight:bold;">Submit</button>
+            <button onclick="closeSecretModal()" style="font-family:'Courier New',monospace;font-size:13px;padding:7px 20px;background:#f0ead8;border:2px solid #aaa;cursor:pointer;color:#666;">Cancel</button>
+        </div>
+    </div>
 </div>
 
 <div id="layout">
@@ -452,6 +467,20 @@
                 <button class="shopbtn manor-upgrade" id="manorUpgrade1Btn">2x Manor Output I (400,000 cotton)</button>
                 <button class="shopbtn manor-upgrade locked" id="manorUpgrade2Btn">2x Manor Output II (700,000 cotton)</button>
                 <button class="shopbtn manor-upgrade locked" id="manorUpgrade3Btn">2x Manor Output III (920,000 cotton)</button>
+            </div>
+
+            <div class="shop-row-label" style="margin-top:8px;">Overseer Upgrades</div>
+            <div class="shop-row">
+                <button class="shopbtn overseer-upgrade" id="overseerUpgrade1Btn">2x Overseer Output I (4,000,000 cotton)</button>
+                <button class="shopbtn overseer-upgrade locked" id="overseerUpgrade2Btn">2x Overseer Output II + 2x Worker Mult (7,650,000 cotton)</button>
+            </div>
+        </div>
+
+        <!-- MASTERS TOUCH LEVEL BAR -->
+        <div id="mastersTouchBar" style="display:none; width:860px; margin-top:8px; background:#f0ead8; border:2px solid #6a3a8a; padding:10px 14px;">
+            <div id="mastersTouchLabel" style="font-size:12px; color:#4a2a7a; margin-bottom:6px; font-family:'Courier New',monospace;"></div>
+            <div style="background:#e0d8f0; border:1px solid #8a5acc; height:14px; border-radius:2px; overflow:hidden;">
+                <div id="mastersTouchFill" style="height:100%; background:#6a3aaa; width:0%; transition:width 0.3s;"></div>
             </div>
         </div>
     </div>
