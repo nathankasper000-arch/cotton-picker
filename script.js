@@ -10,7 +10,6 @@ function confirmBusinessName() {
     businessName = name;
     document.getElementById('namingOverlay').style.display = 'none';
     document.getElementById('businessNameDisplay').textContent = name;
-    saveGame();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
