@@ -12,17 +12,7 @@ function confirmBusinessName() {
     document.getElementById('businessNameDisplay').textContent = name;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('businessNameInput');
-    if (input) input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') confirmBusinessName();
-    });
-    const secretInput = document.getElementById('secretInput');
-    if (secretInput) secretInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitSecretCode();
-        if (e.key === 'Escape') closeSecretModal();
-    });
-});
+// key listeners attached in DOMContentLoaded at bottom of file
 
 // =====================
 // SECRET CODE
@@ -536,11 +526,16 @@ function renderAchievements() {
 }
 
 // =====================
-// DOM REFERENCES
+// DOM REFERENCES — resolved lazily so they work on GitHub Pages
 // =====================
-const cottonDisplay = document.getElementById('cottonCount');
-const cpsDisplay    = document.getElementById('cps');
-const gameArea      = document.getElementById('gameArea');
+const cottonDisplay = { get textContent() { return document.getElementById('cottonCount').textContent; },
+                        set textContent(v) { const el = document.getElementById('cottonCount'); if(el) el.textContent = v; } };
+const cpsDisplay    = { get textContent() { return document.getElementById('cps').textContent; },
+                        set textContent(v) { const el = document.getElementById('cps'); if(el) el.textContent = v; } };
+function getGameArea() { return document.getElementById('gameArea'); }
+// Alias so existing code using `gameArea` still works
+const gameArea = { getBoundingClientRect() { return getGameArea().getBoundingClientRect(); },
+                   appendChild(c) { return getGameArea().appendChild(c); } };
 
 // =====================
 // SMOOTH COTTON COUNTER
@@ -558,7 +553,6 @@ function animateCottonDisplay() {
     cottonDisplay.textContent = Math.floor(displayedCotton).toLocaleString();
     requestAnimationFrame(animateCottonDisplay);
 }
-requestAnimationFrame(animateCottonDisplay);
 
 // =====================
 // UPGRADE BUTTONS SYNC
@@ -611,7 +605,9 @@ function attachUpgradeHandlers() {
     buy('overseerUpgrade1Btn', 4000000, 'overseer1', () => overseerUpgrade1Bought);
     buy('overseerUpgrade2Btn', 7650000, 'overseer2', () => overseerUpgrade2Bought);
 }
-attachUpgradeHandlers();
+
+function initHandlers() {
+    attachUpgradeHandlers();
 
 // =====================
 // CLICK COTTON
@@ -623,7 +619,6 @@ document.getElementById('cottonButton').onclick = function(e) {
     addCotton(gained);
     showPopNumber(e.clientX, e.clientY, Math.floor(gained));
     this.classList.remove('clicked'); void this.offsetWidth; this.classList.add('clicked');
-    // Masters Touch leveling
     if (mastersTouchActive) {
         mastersTouchClicks++;
         tryMastersTouchLevelUp();
@@ -631,16 +626,6 @@ document.getElementById('cottonButton').onclick = function(e) {
     }
     updateDisplay();
 };
-
-function showPopNumber(x, y, value) {
-    const pop = document.createElement('div');
-    pop.className = 'popNumber';
-    pop.style.left = (x - 10) + 'px';
-    pop.style.top  = (y - 30) + 'px';
-    pop.textContent = '+' + value;
-    document.body.appendChild(pop);
-    setTimeout(() => pop.remove(), 1000);
-}
 
 // =====================
 // BUY WORKER
@@ -653,6 +638,58 @@ document.getElementById('buyWorker').onclick = function() {
         updateDisplay();
     }
 };
+
+// =====================
+// BUY FIELD
+// =====================
+document.getElementById('buyField').onclick = function() {
+    if (cotton >= fieldCost) {
+        cotton -= fieldCost;
+        spawnField(fields.length);
+        fields.push(true);
+        fieldCost = Math.min(Math.floor(fieldCost * 1.4), MAX_FIELD_COST);
+        updateDisplay();
+    }
+};
+
+// =====================
+// BUY MANOR
+// =====================
+document.getElementById('buyManor').onclick = function() {
+    if (cotton >= manorCost) {
+        cotton -= manorCost; manors++;
+        spawnManor(manors - 1);
+        manorCost = Math.min(Math.floor(BASE_MANOR_COST * Math.pow(1.3, manors)), MAX_MANOR_COST);
+        updateDisplay();
+    }
+};
+
+// =====================
+// BUY OVERSEER
+// =====================
+document.getElementById('buyOverseer').onclick = function() {
+    if (cotton >= overseerCost) {
+        cotton -= overseerCost;
+        overseers++;
+        spawnOverseer();
+        overseerCost = Math.min(Math.round(BASE_OVERSEER_COST * Math.pow(1.36, overseers)), MAX_OVERSEER_COST);
+        const mult = getOverseerWorkerMult().toFixed(2);
+        showFloatingMsg('Overseer hired! Workers now x' + mult);
+        updateDisplay();
+    }
+};
+} // end initHandlers
+
+function showPopNumber(x, y, value) {
+    const pop = document.createElement('div');
+    pop.className = 'popNumber';
+    pop.style.left = (x - 10) + 'px';
+    pop.style.top  = (y - 30) + 'px';
+    pop.textContent = '+' + value;
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 1000);
+}
+
 function spawnWorker() {
     const w   = document.createElement('img');
     w.src     = 'images/worker.png'; w.className = 'worker';
@@ -671,18 +708,6 @@ function spawnWorker() {
     gameArea.appendChild(w);
 }
 
-// =====================
-// BUY FIELD
-// =====================
-document.getElementById('buyField').onclick = function() {
-    if (cotton >= fieldCost) {
-        cotton -= fieldCost;
-        spawnField(fields.length);
-        fields.push(true);
-        fieldCost = Math.min(Math.floor(fieldCost * 1.4), MAX_FIELD_COST);
-        updateDisplay();
-    }
-};
 function spawnField(index) {
     const f = document.createElement('img');
     f.src = 'images/field.png'; f.className = 'field';
@@ -693,21 +718,9 @@ function spawnField(index) {
     document.body.appendChild(f);
 }
 
-// =====================
-// BUY MANOR
-// =====================
-document.getElementById('buyManor').onclick = function() {
-    if (cotton >= manorCost) {
-        cotton -= manorCost; manors++;
-        spawnManor(manors - 1);
-        manorCost = Math.min(Math.floor(BASE_MANOR_COST * Math.pow(1.3, manors)), MAX_MANOR_COST);
-        updateDisplay();
-    }
-};
 function spawnManor(index) {
     const m = document.createElement('img');
     m.src = 'images/manor.png'; m.className = 'manor';
-    // Position relative to gameArea using absolute page coordinates (not fixed/viewport)
     const gR = gameArea.getBoundingClientRect();
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
@@ -718,21 +731,6 @@ function spawnManor(index) {
     m.style.top  = (gR.top  + scrollY + 10 + 175 * index) + 'px';
     document.body.appendChild(m);
 }
-
-// =====================
-// BUY OVERSEER
-// =====================
-document.getElementById('buyOverseer').onclick = function() {
-    if (cotton >= overseerCost) {
-        cotton -= overseerCost;
-        overseers++;
-        spawnOverseer();
-        overseerCost = Math.min(Math.round(BASE_OVERSEER_COST * Math.pow(1.36, overseers)), MAX_OVERSEER_COST);
-        const mult = getOverseerWorkerMult().toFixed(2);
-        showFloatingMsg('Overseer hired! Workers now x' + mult);
-        updateDisplay();
-    }
-};
 
 function spawnOverseer() {
     const o = document.createElement('img');
@@ -817,10 +815,6 @@ function passiveTick() {
     updateDisplay();
 }
 reschedulePassive(1000);
-
-// =====================
-// RESET
-// =====================
 function resetGame() {
     if (!confirm('Reset everything?')) return;
     localStorage.removeItem('cottonPickerSave');
@@ -924,5 +918,25 @@ function loadGame() {
     updateDisplay();
 }
 
-loadGame();
-setInterval(saveGame, 5000);
+document.addEventListener('DOMContentLoaded', () => {
+    // Attach key listeners
+    const bnInput = document.getElementById('businessNameInput');
+    if (bnInput) bnInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') confirmBusinessName();
+    });
+    const secInput = document.getElementById('secretInput');
+    if (secInput) secInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitSecretCode();
+        if (e.key === 'Escape') closeSecretModal();
+    });
+
+    // Wire up all button handlers
+    initHandlers();
+
+    // Start smooth cotton counter
+    requestAnimationFrame(animateCottonDisplay);
+
+    // Load save and start autosave
+    loadGame();
+    setInterval(saveGame, 5000);
+});
