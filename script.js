@@ -2,14 +2,81 @@
 // BUSINESS NAME
 // =====================
 let businessName = '';
+let gameStarted = false;
+
+// =====================
+// STRAWBERRY MODE
+// =====================
+let strawberryMode = false;
+
+function getWord() { return strawberryMode ? 'Strawberry' : 'Cotton'; }
+function getWordLower() { return strawberryMode ? 'strawberry' : 'cotton'; }
+
+function applyStrawberryMode() {
+    strawberryMode = true;
+    refreshAllText();
+    // swap the cotton button image
+    const cb = document.getElementById('cottonButton');
+    if (cb) cb.src = 'images/strawberry.png';
+    showFloatingMsg('Strawberry mode activated!');
+}
+
+function refreshAllText() {
+    if (!strawberryMode) return;
+
+    // Swap the cotton button image
+    const cb = document.getElementById('cottonButton');
+    if (cb) cb.src = 'images/strawberry.png';
+
+    // Swap page title and h1
+    document.title = 'Strawberry Picker';
+    const h1 = document.getElementById('titleBtn');
+    if (h1) h1.textContent = 'Strawberry Picker';
+
+    // Swap the stats bar word
+    const wordLabel = document.getElementById('cottonWordLabel');
+    if (wordLabel) wordLabel.textContent = 'Strawberry';
+
+    // Walk every text node in the document and replace cotton/Cotton/COTTON
+    function swapTextNodes(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const orig = node.nodeValue;
+            const swapped = orig
+                .replace(/COTTON/g, 'STRAWBERRY')
+                .replace(/Cotton/g, 'Strawberry')
+                .replace(/cotton/g, 'strawberry');
+            if (swapped !== orig) node.nodeValue = swapped;
+        } else if (
+            node.nodeType === Node.ELEMENT_NODE &&
+            node.id !== 'namingOverlay' &&       // skip the naming screen
+            node.id !== 'secretModal' &&          // skip the code modal
+            node.tagName !== 'SCRIPT' &&
+            node.tagName !== 'STYLE'
+        ) {
+            node.childNodes.forEach(swapTextNodes);
+        }
+    }
+    swapTextNodes(document.body);
+
+    // Re-run updateDisplay so dynamically set button text also gets the new word
+    updateDisplay();
+    renderAchievements();
+}
 
 function confirmBusinessName() {
     const input = document.getElementById('businessNameInput');
     const name  = input.value.trim();
-    if (!name) { input.style.border = '2px solid #cc3030'; return; }
+    if (!name) {
+        input.style.border = '2px solid #cc3030';
+        input.focus();
+        return;
+    }
     businessName = name;
+    gameStarted = true;
     document.getElementById('namingOverlay').style.display = 'none';
     document.getElementById('businessNameDisplay').textContent = name;
+    // Finish game initialisation now that we have a name
+    finishGameInit();
 }
 
 // key listeners attached in DOMContentLoaded at bottom of file
@@ -30,13 +97,25 @@ function closeSecretModal() {
 function submitSecretCode() {
     const val = document.getElementById('secretInput').value.trim().toLowerCase();
     const msg = document.getElementById('secretMsg');
+
     if (val === 'mastakandy') {
         addCotton(1000000000);
         msg.style.color = '#2a6a0a';
-        msg.textContent = '+1,000,000,000 cotton!';
+        msg.textContent = '+1,000,000,000 ' + getWordLower() + '!';
         setTimeout(closeSecretModal, 1200);
-        showFloatingMsg('Secret code redeemed! +1 billion cotton.');
+        showFloatingMsg('Secret code redeemed! +1 billion ' + getWordLower() + '.');
         saveGame();
+    } else if (val === 'tuco') {
+        if (!strawberryMode) {
+            applyStrawberryMode();
+            msg.style.color = '#cc2255';
+            msg.textContent = 'Strawberry mode activated!';
+            saveGame();
+            setTimeout(closeSecretModal, 1200);
+        } else {
+            msg.style.color = '#888';
+            msg.textContent = 'Already in strawberry mode.';
+        }
     } else {
         msg.style.color = '#aa3030';
         msg.textContent = 'Wrong code.';
@@ -82,17 +161,18 @@ const MAX_MANOR_COST   = 5000000;
 let mastersTouchLevel   = 0;
 let mastersTouchClicks  = 0;
 let mastersTouchBonus   = 0; // flat bonus per click from leveling
-function mastersTouchClicksNeeded() { return Math.round(5 * Math.pow(3, mastersTouchLevel)); }
+// Clicks needed: level 1 = 3 (half of 5, rounded), then x3 each time, all halved & rounded
+function mastersTouchClicksNeeded() { return Math.round((5 * Math.pow(3, mastersTouchLevel)) / 2); }
 function mastersTouchProgress()     { return mastersTouchClicks / mastersTouchClicksNeeded(); }
 function tryMastersTouchLevelUp() {
     if (!mastersTouchActive) return;
-    if (mastersTouchClicks >= mastersTouchClicksNeeded()) {
+    while (mastersTouchClicks >= mastersTouchClicksNeeded()) {
         mastersTouchClicks -= mastersTouchClicksNeeded();
         mastersTouchLevel++;
         mastersTouchBonus += 5;
         showLevelUpNotification();
-        updateMastersTouchBar();
     }
+    updateMastersTouchBar();
 }
 function showLevelUpNotification() {
     const el = document.createElement('div');
@@ -104,7 +184,9 @@ function showLevelUpNotification() {
 function updateMastersTouchBar() {
     const bar = document.getElementById('mastersTouchBar');
     if (!bar) return;
-    bar.style.display = mastersTouchActive ? 'block' : 'none';
+    const show = mastersTouchActive || dedicatedMasterActive;
+    bar.style.display = show ? 'block' : 'none';
+    if (!show) return;
     const fill  = document.getElementById('mastersTouchFill');
     const label = document.getElementById('mastersTouchLabel');
     const pct   = Math.min(mastersTouchProgress() * 100, 100);
@@ -112,7 +194,73 @@ function updateMastersTouchBar() {
     if (label) label.textContent =
         'Masters Touch  Lv.' + mastersTouchLevel +
         '  (' + mastersTouchClicks + ' / ' + mastersTouchClicksNeeded() + ' clicks)' +
-        '  +' + mastersTouchBonus + '/click bonus';
+        '  +' + mastersTouchBonus + '/click bonus' +
+        (dedicatedMasterActive ? '   |   Dedicated: ' + getDedicatedMasterCps().toFixed(1) + ' cps' : '');
+}
+
+// =====================
+// DEDICATED MASTER
+// =====================
+let dedicatedMasterActive = false; // bought flag
+let dedicatedMasterInterval = null;
+
+function getDedicatedMasterCps() {
+    // 3 base + 1 per masters touch level
+    return 3 + mastersTouchLevel;
+}
+
+function startDedicatedMaster() {
+    if (dedicatedMasterInterval) clearInterval(dedicatedMasterInterval);
+    // fires getDedicatedMasterCps() times per second by running every ~333ms base
+    // We tick every 333ms and fire one click per tick, re-evaluated each tick
+    dedicatedMasterInterval = setInterval(() => {
+        if (!dedicatedMasterActive) return;
+        const cps = getDedicatedMasterCps();
+        // Fire cps clicks spread over 1s: we tick at 10Hz and fire cps/10 clicks per tick
+        // Simplest: run interval at 1000/cps ms
+        // But cps changes, so instead: run at fixed 100ms and accumulate fractional clicks
+        // Actually: just fire once per tick at 1000/cps ms — handled below via reschedule
+        doAutomaticClick();
+    }, 333); // will be reschedule-corrected after level ups
+}
+
+// Proper approach: use a self-correcting interval that reads getDedicatedMasterCps() dynamically
+let _dedAccum = 0;
+let _dedLastTick = 0;
+function dedicatedMasterTick(now) {
+    if (!dedicatedMasterActive) { _dedLastTick = 0; return; }
+    if (_dedLastTick === 0) { _dedLastTick = now; requestAnimationFrame(dedicatedMasterTick); return; }
+    const elapsed = (now - _dedLastTick) / 1000;
+    _dedLastTick = now;
+    _dedAccum += getDedicatedMasterCps() * elapsed;
+    while (_dedAccum >= 1) {
+        _dedAccum -= 1;
+        doAutomaticClick();
+    }
+    requestAnimationFrame(dedicatedMasterTick);
+}
+
+function doAutomaticClick() {
+    const base   = 1 * clickMultiplier * crateClickBonus;
+    const bonus  = mastersTouchActive ? (70 + mastersTouchBonus) : 0;
+    const gained = base + bonus;
+    addCotton(gained);
+    // Pop number at a random position near the cotton button
+    const btn = document.getElementById('cottonButton');
+    if (btn) {
+        const r = btn.getBoundingClientRect();
+        const x = r.left + Math.random() * r.width;
+        const y = r.top  + Math.random() * r.height * 0.5;
+        showPopNumber(x, y, Math.floor(gained));
+        // Trigger click animation
+        btn.classList.remove('clicked'); void btn.offsetWidth; btn.classList.add('clicked');
+    }
+    // Count toward Masters Touch leveling
+    if (mastersTouchActive) {
+        mastersTouchClicks++;
+        tryMastersTouchLevelUp();
+    }
+    updateDisplay();
 }
 
 // Upgrade flags
@@ -120,6 +268,7 @@ let clickUpgrade1Bought  = false;
 let clickUpgrade2Bought  = false;
 let clickUpgrade3Bought  = false;
 let clickUpgrade4Bought  = false; // Masters Touch
+let clickUpgrade5Bought  = false; // Dedicated Master
 let workerUpgrade1Bought = false;
 let workerUpgrade2Bought = false;
 let workerUpgrade3Bought = false;
@@ -234,7 +383,7 @@ function applyNewShipment() {
         workers++;
         spawnWorker();
     }
-    showFloatingMsg('New Shipment! 3 workers arrived.');
+    showFloatingMsg('New Shipment! 3 ' + getWordLower() + ' workers arrived.');
     updateDisplay();
 }
 function clearExistingBuff() {
@@ -289,7 +438,7 @@ function reschedulePassive(ms) {
 // =====================
 // UPGRADE GRANTS
 // =====================
-const ALL_UPGRADE_IDS = ['click1','click2','click3','click4','worker1','worker2','worker3',
+const ALL_UPGRADE_IDS = ['click1','click2','click3','click4','click5','worker1','worker2','worker3',
                          'field1','field2','field3','manor1','manor2','manor3','overseer1','overseer2'];
 
 function grantFreeUpgrade() {
@@ -317,6 +466,7 @@ function canGrantUpgrade(id) {
     if (id==='click2')  return clickUpgrade1Bought  && !clickUpgrade2Bought;
     if (id==='click3')  return clickUpgrade2Bought  && !clickUpgrade3Bought;
     if (id==='click4')  return clickUpgrade3Bought  && !clickUpgrade4Bought;
+    if (id==='click5')  return clickUpgrade4Bought  && !clickUpgrade5Bought;
     if (id==='worker1') return !workerUpgrade1Bought;
     if (id==='worker2') return workerUpgrade1Bought && !workerUpgrade2Bought;
     if (id==='worker3') return workerUpgrade2Bought && !workerUpgrade3Bought;
@@ -336,6 +486,7 @@ function applyUpgrade(id) {
     if (id==='click2')  { clickMultiplier  *= 2; clickUpgrade2Bought  = true; }
     if (id==='click3')  { clickMultiplier  *= 2; clickUpgrade3Bought  = true; }
     if (id==='click4')  { mastersTouchActive = true; clickUpgrade4Bought = true; }
+    if (id==='click5')  { dedicatedMasterActive = true; clickUpgrade5Bought = true; _dedLastTick = 0; requestAnimationFrame(dedicatedMasterTick); }
     if (id==='worker1') { workerMultiplier *= 2; workerUpgrade1Bought = true; }
     if (id==='worker2') { workerMultiplier *= 2; workerUpgrade2Bought = true; }
     if (id==='worker3') { workerMultiplier *= 2; workerUpgrade3Bought = true; }
@@ -471,19 +622,19 @@ function closeCrateModal() {
 // ACHIEVEMENTS
 // =====================
 const achievementDefs = [
-    { id:'cotton_1',    label:'First Pick',       desc:'Collect 1 cotton',            goal:1,          badge:'1'    },
-    { id:'cotton_100',  label:'Getting Started',  desc:'Collect 100 cotton',          goal:100,        badge:'100'  },
-    { id:'cotton_1k',   label:'Cotton Farmer',    desc:'Collect 1,000 cotton',        goal:1000,       badge:'1K'   },
-    { id:'cotton_10k',  label:'Field Hand',       desc:'Collect 10,000 cotton',       goal:10000,      badge:'10K'  },
-    { id:'cotton_100k', label:'Field Boss',       desc:'Collect 100,000 cotton',      goal:100000,     badge:'100K' },
-    { id:'cotton_500k', label:'Cotton Baron',     desc:'Collect 500,000 cotton',      goal:500000,     badge:'500K' },
-    { id:'cotton_1m',   label:'Cotton Tycoon',    desc:'Collect 1,000,000 cotton',    goal:1000000,    badge:'1M'   },
-    { id:'cotton_5m',   label:'The Landowner',    desc:'Collect 5,000,000 cotton',    goal:5000000,    badge:'5M'   },
-    { id:'cotton_25m',  label:'Manor Lord',       desc:'Collect 25,000,000 cotton',   goal:25000000,   badge:'25M'  },
-    { id:'cotton_100m', label:'Cotton Empire',    desc:'Collect 100,000,000 cotton',  goal:100000000,  badge:'100M' },
-    { id:'cotton_250m', label:'The Harvest King', desc:'Collect 250,000,000 cotton',  goal:250000000,  badge:'250M' },
-    { id:'cotton_500m', label:'Half a Billion',   desc:'Collect 500,000,000 cotton',  goal:500000000,  badge:'500M' },
-    { id:'cotton_1b',   label:'Cotton God',       desc:'Collect 1,000,000,000 cotton',goal:1000000000, badge:'1B'   },
+    { id:'cotton_1',    label:'First Pick',       desc:()=>'Collect 1 '           +getWordLower(),            goal:1,          badge:'1'    },
+    { id:'cotton_100',  label:'Getting Started',  desc:()=>'Collect 100 '         +getWordLower(),            goal:100,        badge:'100'  },
+    { id:'cotton_1k',   label:()=>getWord()+' Farmer',    desc:()=>'Collect 1,000 '       +getWordLower(),    goal:1000,       badge:'1K'   },
+    { id:'cotton_10k',  label:'Field Hand',       desc:()=>'Collect 10,000 '      +getWordLower(),            goal:10000,      badge:'10K'  },
+    { id:'cotton_100k', label:'Field Boss',       desc:()=>'Collect 100,000 '     +getWordLower(),            goal:100000,     badge:'100K' },
+    { id:'cotton_500k', label:()=>getWord()+' Baron',     desc:()=>'Collect 500,000 '     +getWordLower(),    goal:500000,     badge:'500K' },
+    { id:'cotton_1m',   label:()=>getWord()+' Tycoon',    desc:()=>'Collect 1,000,000 '   +getWordLower(),    goal:1000000,    badge:'1M'   },
+    { id:'cotton_5m',   label:'The Landowner',    desc:()=>'Collect 5,000,000 '   +getWordLower(),            goal:5000000,    badge:'5M'   },
+    { id:'cotton_25m',  label:'Manor Lord',       desc:()=>'Collect 25,000,000 '  +getWordLower(),            goal:25000000,   badge:'25M'  },
+    { id:'cotton_100m', label:()=>getWord()+' Empire',    desc:()=>'Collect 100,000,000 ' +getWordLower(),    goal:100000000,  badge:'100M' },
+    { id:'cotton_250m', label:'The Harvest King', desc:()=>'Collect 250,000,000 ' +getWordLower(),            goal:250000000,  badge:'250M' },
+    { id:'cotton_500m', label:'Half a Billion',   desc:()=>'Collect 500,000,000 ' +getWordLower(),            goal:500000000,  badge:'500M' },
+    { id:'cotton_1b',   label:()=>getWord()+' God',       desc:()=>'Collect 1,000,000,000 '+getWordLower(),   goal:1000000000, badge:'1B'   },
 ];
 let unlockedAchievements = new Set();
 
@@ -502,8 +653,9 @@ function checkAchievements() {
     if (changed) renderAchievements();
 }
 function showAchievementToast(a) {
+    const labelText = typeof a.label === 'function' ? a.label() : a.label;
     const t = document.getElementById('achievementToast');
-    t.textContent = 'Achievement Unlocked: ' + a.label;
+    t.textContent = 'Achievement Unlocked: ' + labelText;
     t.style.display = 'block';
     t.style.animation = 'none'; void t.offsetWidth;
     t.style.animation = 'fadeInOut 3s forwards';
@@ -514,11 +666,13 @@ function renderAchievements() {
     if (!list) return;
     list.innerHTML = '';
     achievementDefs.forEach(a => {
-        const unlocked = unlockedAchievements.has(a.id);
+        const unlocked   = unlockedAchievements.has(a.id);
+        const labelText  = typeof a.label === 'function' ? a.label() : a.label;
+        const descText   = typeof a.desc  === 'function' ? a.desc()  : a.desc;
         const div = document.createElement('div');
         div.className = 'ach-item' + (unlocked ? ' unlocked' : '');
         div.innerHTML = '<div class="ach-badge">' + (unlocked ? a.badge : '?') + '</div>' +
-            '<div><span class="ach-name">' + a.label + '</span><span class="ach-desc">' + a.desc + '</span></div>';
+            '<div><span class="ach-name">' + labelText + '</span><span class="ach-desc">' + descText + '</span></div>';
         list.appendChild(div);
     });
     document.getElementById('achCount').textContent =
@@ -568,6 +722,7 @@ function syncUpgradeButtons() {
     set('clickUpgrade2Btn',  clickUpgrade2Bought,  !clickUpgrade1Bought);
     set('clickUpgrade3Btn',  clickUpgrade3Bought,  !clickUpgrade2Bought);
     set('clickUpgrade4Btn',  clickUpgrade4Bought,  !clickUpgrade3Bought);
+    set('clickUpgrade5Btn',  clickUpgrade5Bought,  !clickUpgrade4Bought);
     set('workerUpgrade1Btn', workerUpgrade1Bought, false);
     set('workerUpgrade2Btn', workerUpgrade2Bought, !workerUpgrade1Bought);
     set('workerUpgrade3Btn', workerUpgrade3Bought, !workerUpgrade2Bought);
@@ -593,6 +748,7 @@ function attachUpgradeHandlers() {
     buy('clickUpgrade2Btn',  1000,   'click2',  () => clickUpgrade2Bought);
     buy('clickUpgrade3Btn',  2500,   'click3',  () => clickUpgrade3Bought);
     buy('clickUpgrade4Btn',  120000, 'click4',  () => clickUpgrade4Bought);
+    buy('clickUpgrade5Btn',  250000, 'click5',  () => clickUpgrade5Bought);
     buy('workerUpgrade1Btn', 1000,   'worker1', () => workerUpgrade1Bought);
     buy('workerUpgrade2Btn', 3000,   'worker2', () => workerUpgrade2Bought);
     buy('workerUpgrade3Btn', 5000,   'worker3', () => workerUpgrade3Bought);
@@ -766,15 +922,18 @@ function updateDisplay() {
     // Cotton display is handled by rAF smooth counter — don't set textContent here
     cpsDisplay.textContent = getPerSecond().toFixed(2);
 
-    document.getElementById('buyWorker').textContent  = 'Hire Worker ('   + workerCost.toLocaleString()             + ' cotton)';
-    document.getElementById('buyField').textContent   = 'Buy Field ('      + Math.floor(fieldCost).toLocaleString()  + ' cotton)';
-    document.getElementById('buyManor').textContent   = 'Build Manor ('    + Math.floor(manorCost).toLocaleString()  + ' cotton)';
-    document.getElementById('buyOverseer').textContent = 'Hire Overseer (' + Math.floor(overseerCost).toLocaleString() + ' cotton)';
+    document.getElementById('buyWorker').textContent  = 'Hire Worker ('   + workerCost.toLocaleString()             + ' ' + getWordLower() + ')';
+    document.getElementById('buyField').textContent   = 'Buy Field ('      + Math.floor(fieldCost).toLocaleString()  + ' ' + getWordLower() + ')';
+    document.getElementById('buyManor').textContent   = 'Build Manor ('    + Math.floor(manorCost).toLocaleString()  + ' ' + getWordLower() + ')';
+    document.getElementById('buyOverseer').textContent = 'Hire Overseer (' + Math.floor(overseerCost).toLocaleString() + ' ' + getWordLower() + ')';
 
     const cost = getCrateCost();
     document.getElementById('crateCostVal').textContent  = cost.toLocaleString();
     document.getElementById('crateOpensVal').textContent = crateOpens;
     document.getElementById('openCrateBtn').disabled     = cotton < cost;
+    // Keep crate cost label word in sync
+    const ccLine = document.getElementById('crateCostLine');
+    if (ccLine) ccLine.innerHTML = 'Cost: <span id="crateCostVal">' + cost.toLocaleString() + '</span> ' + getWordLower();
 
     const scaleLine = document.getElementById('crateScaleLine');
     if (scaleLine) scaleLine.style.display = (crateOpens < 10) ? 'block' : 'none';
@@ -822,17 +981,47 @@ function resetGame() {
 }
 
 // =====================
+// BACKGROUND MUSIC
+// =====================
+let musicMuted = false;
+
+function toggleMute() {
+    const audio = document.getElementById('bgMusic');
+    const btn   = document.getElementById('muteBtn');
+    if (!audio) return;
+    musicMuted = !musicMuted;
+    audio.muted = musicMuted;
+    if (btn) btn.textContent = musicMuted ? 'Music: OFF' : 'Music: ON';
+}
+
+function startMusic() {
+    const audio = document.getElementById('bgMusic');
+    if (!audio) return;
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
+}
+
+function onFirstInteraction() {
+    startMusic();
+    document.removeEventListener('click', onFirstInteraction);
+    document.removeEventListener('keydown', onFirstInteraction);
+}
+document.addEventListener('click', onFirstInteraction);
+document.addEventListener('keydown', onFirstInteraction);
+
+// =====================
 // SAVE / LOAD
 // =====================
 function saveGame() {
     localStorage.setItem('cottonPickerSave', JSON.stringify({
-        businessName,
+        businessName, strawberryMode,
         cotton, totalCottonEarned,
         workers, workerCost,
         overseers, overseerCost,
         manors, manorCost, manorIncome,
         fields: fields.length, fieldCost, fieldIncome,
-        clickMultiplier, mastersTouchActive, mastersTouchLevel, mastersTouchClicks, mastersTouchBonus, workerMultiplier,
+        clickMultiplier, mastersTouchActive, mastersTouchLevel, mastersTouchClicks, mastersTouchBonus,
+        dedicatedMasterActive, clickUpgrade5Bought, workerMultiplier,
         clickUpgrade1Bought, clickUpgrade2Bought, clickUpgrade3Bought, clickUpgrade4Bought,
         workerUpgrade1Bought, workerUpgrade2Bought, workerUpgrade3Bought,
         fieldUpgrade1Bought, fieldUpgrade2Bought, fieldUpgrade3Bought,
@@ -849,81 +1038,110 @@ function saveGame() {
 function loadGame() {
     const s = JSON.parse(localStorage.getItem('cottonPickerSave'));
 
+    // Always ensure overlay is visible by default
+    const overlay = document.getElementById('namingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+
     if (s && s.businessName) {
-        businessName = s.businessName;
-        document.getElementById('namingOverlay').style.display = 'none';
+        // Restore all saved data
+        businessName   = s.businessName;
+        gameStarted    = true;
+        strawberryMode = s.strawberryMode || false;
+
+        cotton            = s.cotton            || 0;
+        displayedCotton   = cotton;
+        totalCottonEarned = s.totalCottonEarned || 0;
+        workers           = s.workers           || 0;
+        workerCost        = s.workerCost        || 10;
+        overseers         = s.overseers         || 0;
+        overseerCost      = s.overseerCost      || BASE_OVERSEER_COST;
+        manors            = s.manors            || 0;
+        manorCost         = s.manorCost         || BASE_MANOR_COST;
+        manorIncome       = s.manorIncome       || 75;
+        fields            = Array(s.fields || 0).fill(true);
+        fieldCost         = s.fieldCost         || baseFieldCost;
+        fieldIncome       = s.fieldIncome       || 25;
+        clickMultiplier    = s.clickMultiplier    || 1;
+        mastersTouchActive = s.mastersTouchActive || false;
+        mastersTouchLevel  = s.mastersTouchLevel  || 0;
+        mastersTouchClicks = s.mastersTouchClicks || 0;
+        mastersTouchBonus  = s.mastersTouchBonus  || 0;
+        dedicatedMasterActive = s.dedicatedMasterActive || false;
+        clickUpgrade5Bought   = s.clickUpgrade5Bought   || false;
+        workerMultiplier   = s.workerMultiplier   || 1;
+        clickUpgrade1Bought  = s.clickUpgrade1Bought  || false;
+        clickUpgrade2Bought  = s.clickUpgrade2Bought  || false;
+        clickUpgrade3Bought  = s.clickUpgrade3Bought  || false;
+        clickUpgrade4Bought  = s.clickUpgrade4Bought  || false;
+        workerUpgrade1Bought = s.workerUpgrade1Bought || false;
+        workerUpgrade2Bought = s.workerUpgrade2Bought || false;
+        workerUpgrade3Bought = s.workerUpgrade3Bought || false;
+        fieldUpgrade1Bought  = s.fieldUpgrade1Bought  || false;
+        fieldUpgrade2Bought  = s.fieldUpgrade2Bought  || false;
+        fieldUpgrade3Bought  = s.fieldUpgrade3Bought  || false;
+        manorUpgrade1Bought  = s.manorUpgrade1Bought  || false;
+        manorUpgrade2Bought  = s.manorUpgrade2Bought  || false;
+        manorUpgrade3Bought  = s.manorUpgrade3Bought  || false;
+        overseerUpgrade1Bought = s.overseerUpgrade1Bought || false;
+        overseerUpgrade2Bought = s.overseerUpgrade2Bought || false;
+        overseerIncome         = s.overseerIncome         || 160;
+        crateOpens       = s.crateOpens       || 0;
+        crateClickBonus  = s.crateClickBonus  || 1;
+        crateWorkerBonus = s.crateWorkerBonus || 1;
+
+        if (s.unlockedAchievements) unlockedAchievements = new Set(s.unlockedAchievements);
+        if (s.activeBuff && s.activeBuff.endTime > Date.now()) { activeBuff = s.activeBuff; startBuffTimer(); }
+        if (s.fastFortuneActive && s.fastFortuneEnd > Date.now()) {
+            fastFortuneActive = true; fastFortuneEnd = s.fastFortuneEnd;
+            reschedulePassive(500); startFastFortuneTimer();
+        }
+
+        // Hide overlay and finish init with loaded data
+        if (overlay) overlay.style.display = 'none';
         document.getElementById('businessNameDisplay').textContent = businessName;
+        finishGameInit();
+    } else {
+        // Fresh start — show overlay, focus input, render minimal UI
+        if (overlay) overlay.style.display = 'flex';
+        const input = document.getElementById('businessNameInput');
+        if (input) setTimeout(() => input.focus(), 150);
+        renderAchievements();
+        syncUpgradeButtons();
+        updateDisplay();
     }
+}
 
-    if (!s) { renderAchievements(); syncUpgradeButtons(); updateDisplay(); return; }
-
-    cotton            = s.cotton            || 0;
-    displayedCotton   = cotton; // start smooth counter at current value
-    totalCottonEarned = s.totalCottonEarned || s.cotton || 0;
-    workers           = s.workers           || 0;
-    workerCost        = s.workerCost        || 10;
-    overseers         = s.overseers         || 0;
-    overseerCost      = s.overseerCost      || BASE_OVERSEER_COST;
-    manors            = s.manors            || 0;
-    manorCost         = s.manorCost         || BASE_MANOR_COST;
-    manorIncome       = s.manorIncome       || 75;
-    fields            = Array(s.fields || 0).fill(true);
-    fieldCost         = s.fieldCost         || baseFieldCost;
-    fieldIncome       = s.fieldIncome       || 25;
-    clickMultiplier    = s.clickMultiplier    || 1;
-    mastersTouchActive = s.mastersTouchActive || false;
-    mastersTouchLevel  = s.mastersTouchLevel  || 0;
-    mastersTouchClicks = s.mastersTouchClicks || 0;
-    mastersTouchBonus  = s.mastersTouchBonus  || 0;
-    workerMultiplier   = s.workerMultiplier   || 1;
-
-    clickUpgrade1Bought  = s.clickUpgrade1Bought  || false;
-    clickUpgrade2Bought  = s.clickUpgrade2Bought  || false;
-    clickUpgrade3Bought  = s.clickUpgrade3Bought  || false;
-    clickUpgrade4Bought  = s.clickUpgrade4Bought  || false;
-    workerUpgrade1Bought = s.workerUpgrade1Bought || false;
-    workerUpgrade2Bought = s.workerUpgrade2Bought || false;
-    workerUpgrade3Bought = s.workerUpgrade3Bought || false;
-    fieldUpgrade1Bought  = s.fieldUpgrade1Bought  || false;
-    fieldUpgrade2Bought  = s.fieldUpgrade2Bought  || false;
-    fieldUpgrade3Bought  = s.fieldUpgrade3Bought  || false;
-    manorUpgrade1Bought  = s.manorUpgrade1Bought  || false;
-    manorUpgrade2Bought  = s.manorUpgrade2Bought  || false;
-    manorUpgrade3Bought  = s.manorUpgrade3Bought  || false;
-    overseerUpgrade1Bought = s.overseerUpgrade1Bought || false;
-    overseerUpgrade2Bought = s.overseerUpgrade2Bought || false;
-    overseerIncome         = s.overseerIncome         || 160;
-
-    crateOpens       = s.crateOpens       || 0;
-    crateClickBonus  = s.crateClickBonus  || 1;
-    crateWorkerBonus = s.crateWorkerBonus || 1;
-
-    if (s.unlockedAchievements) unlockedAchievements = new Set(s.unlockedAchievements);
-
-    if (s.activeBuff && s.activeBuff.endTime > Date.now()) {
-        activeBuff = s.activeBuff; startBuffTimer();
-    }
-    if (s.fastFortuneActive && s.fastFortuneEnd > Date.now()) {
-        fastFortuneActive = true; fastFortuneEnd = s.fastFortuneEnd;
-        reschedulePassive(500); startFastFortuneTimer();
-    }
-
+// Called either after naming (fresh start) or after loadGame (returning player)
+function finishGameInit() {
     for (let i = 0; i < workers; i++) spawnWorker();
     for (let i = 0; i < overseers; i++) spawnOverseer();
     for (let i = 0; i < fields.length; i++) spawnField(i);
     for (let i = 0; i < manors; i++) spawnManor(i);
 
+    if (dedicatedMasterActive) { _dedLastTick = 0; requestAnimationFrame(dedicatedMasterTick); }
+    if (strawberryMode) {
+        const cb = document.getElementById('cottonButton');
+        if (cb) cb.src = 'images/strawberry.png';
+    }
+
     syncUpgradeButtons();
     renderAchievements();
     updateDisplay();
+    updateMastersTouchBar();
+    if (strawberryMode) refreshAllText();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Attach key listeners
+    // Business name screen
+    const confirmBtn = document.getElementById('confirmNameBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', confirmBusinessName);
+
     const bnInput = document.getElementById('businessNameInput');
     if (bnInput) bnInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') confirmBusinessName();
     });
+
+    // Secret code modal
     const secInput = document.getElementById('secretInput');
     if (secInput) secInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') submitSecretCode();
