@@ -341,6 +341,14 @@
             background: #f0ead8; border: 2px solid #aaa; color: #888; cursor: pointer;
         }
         #resetBtn:hover { background: #e8e0d0; }
+
+        #muteBtn {
+            position: fixed; bottom: 16px; left: 16px;
+            font-family: "Courier New", monospace;
+            font-size: 12px; padding: 6px 12px;
+            background: #f0ead8; border: 2px solid #aaa; color: #888; cursor: pointer;
+        }
+        #muteBtn:hover { background: #e8e0d0; }
     </style>
 </head>
 <body>
@@ -352,7 +360,7 @@
         <h2>Name Your Business</h2>
         <p>Give your cotton operation a name before you start.<br>You cannot change it without resetting.</p>
         <input type="text" id="businessNameInput" maxlength="32" placeholder="e.g. Greenfield Cotton Co." />
-        <button id="confirmNameBtn" onclick="confirmBusinessName()">Start Game</button>
+        <button id="confirmNameBtn">Start Game</button>
     </div>
 </div>
 
@@ -363,7 +371,7 @@
         <div id="businessNameDisplay"></div>
     </div>
     <div id="stats-display">
-        Cotton: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span>
+        <span id="cottonWordLabel">Cotton</span>: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span>
     </div>
     <div></div>
 </div>
@@ -446,6 +454,7 @@
                 <button class="shopbtn tier2 locked" id="clickUpgrade2Btn">2x Clicker II (1,000 cotton)</button>
                 <button class="shopbtn tier3 locked" id="clickUpgrade3Btn">2x Clicker III (2,500 cotton)</button>
                 <button class="shopbtn tier4 locked" id="clickUpgrade4Btn">Masters Touch (120,000 cotton)</button>
+                <button class="shopbtn tier4 locked" id="clickUpgrade5Btn">Dedicated Master (250,000 cotton)</button>
             </div>
 
             <div class="shop-row-label" style="margin-top:8px;">Worker Upgrades</div>
@@ -506,6 +515,12 @@
         <button id="closeModalBtn" onclick="closeCrateModal()">Collect Reward</button>
     </div>
 </div>
+
+<!-- BACKGROUND MUSIC -->
+<audio id="bgMusic" loop>
+    <source src="music/background.mp3" type="audio/mpeg">
+</audio>
+<button id="muteBtn" onclick="toggleMute()" title="Toggle music">Music: ON</button>
 
 <div id="achievementToast"></div>
 <button id="resetBtn" onclick="resetGame()">Reset</button>
