@@ -4,351 +4,494 @@
     <title>Cotton Picker</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: "Courier New", monospace;
-            background: #c8d8b0;
-            min-height: 100vh;
-            padding-bottom: 60px;
-        }
+        body { font-family: "Courier New", monospace; background: #c8d8b0; min-height: 100vh; padding-bottom: 60px; }
 
         /* ── NAMING OVERLAY ── */
-        #namingOverlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 5000;
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column;
-        }
-        #namingBox {
-            background: #f0ead8;
-            border: 3px solid #5a7a3a;
-            padding: 36px 40px;
-            text-align: center;
-            max-width: 420px;
-            width: 90%;
-            position: relative;
-        }
-        #namingBox h2 {
-            font-size: 20px; color: #2a4a1a;
-            margin-bottom: 10px; letter-spacing: 1px;
-        }
-        #namingBox p {
-            font-size: 13px; color: #666;
-            margin-bottom: 18px; line-height: 1.5;
-        }
-        #businessNameInput {
-            font-family: "Courier New", monospace;
-            font-size: 17px; padding: 10px 14px;
-            border: 2px solid #5a7a3a;
-            background: #faf8f3; color: #2a4a1a;
-            width: 100%; margin-bottom: 14px;
-            outline: none;
-        }
-        #businessNameInput:focus { border-color: #2a6a0a; }
-        #confirmNameBtn {
-            font-family: "Courier New", monospace;
-            font-size: 15px; padding: 10px 28px;
-            background: #4a7a2a; color: #f0ead8;
-            border: 2px solid #2a5a0a; cursor: pointer; font-weight: bold;
-        }
-        #confirmNameBtn:hover { background: #3a6a1a; }
-        /* Arrow pointing to input */
-        #namingArrow {
-            font-size: 28px; color: #4a7a2a;
-            margin-bottom: 8px;
-            animation: arrowBounce 0.7s ease-in-out infinite alternate;
-        }
-        @keyframes arrowBounce {
-            0%   { transform: translateY(0); }
-            100% { transform: translateY(8px); }
-        }
+        #namingOverlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;flex-direction:column; }
+        #namingBox { background:#f0ead8;border:3px solid #5a7a3a;padding:36px 40px;text-align:center;max-width:420px;width:90%;position:relative; }
+        #namingBox h2 { font-size:20px;color:#2a4a1a;margin-bottom:10px;letter-spacing:1px; }
+        #namingBox p  { font-size:13px;color:#666;margin-bottom:18px;line-height:1.5; }
+        #businessNameInput { font-family:"Courier New",monospace;font-size:17px;padding:10px 14px;border:2px solid #5a7a3a;background:#faf8f3;color:#2a4a1a;width:100%;margin-bottom:14px;outline:none; }
+        #businessNameInput:focus { border-color:#2a6a0a; }
+        #confirmNameBtn { font-family:"Courier New",monospace;font-size:15px;padding:10px 28px;background:#4a7a2a;color:#f0ead8;border:2px solid #2a5a0a;cursor:pointer;font-weight:bold; }
+        #confirmNameBtn:hover { background:#3a6a1a; }
+        #namingArrow { font-size:28px;color:#4a7a2a;margin-bottom:8px;animation:arrowBounce 0.7s ease-in-out infinite alternate; }
+        @keyframes arrowBounce { 0%{transform:translateY(0);}100%{transform:translateY(8px);} }
 
         /* ── TOP BAR ── */
-        #topbar {
-            background: #f0ead8;
-            border-bottom: 3px solid #5a7a3a;
-            padding: 10px 20px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        #topbar-left { display: flex; flex-direction: column; align-items: flex-start; }
-        #topbar h1 { font-size: 22px; color: #2a4a1a; letter-spacing: 1px; }
-        #businessNameDisplay {
-            font-size: 12px; color: #6a8a4a; margin-top: 2px; font-style: italic;
-        }
-        #stats-display { font-size: 16px; color: #3a5a2a; text-align: center; }
-        #stats-display span { font-weight: bold; color: #1a3a0a; }
+        #topbar { background:#f0ead8;border-bottom:3px solid #5a7a3a;padding:10px 20px;display:flex;align-items:center;justify-content:space-between; }
+        #topbar-left { display:flex;flex-direction:column;align-items:flex-start; }
+        #topbar h1 { font-size:22px;color:#2a4a1a;letter-spacing:1px; }
+        #businessNameDisplay { font-size:12px;color:#6a8a4a;margin-top:2px;font-style:italic; }
+        #stats-display { font-size:16px;color:#3a5a2a;text-align:center; }
+        #stats-display span { font-weight:bold;color:#1a3a0a; }
+        #taxDisplay { font-size:13px;color:#aa3030;font-weight:bold;margin-left:14px; }
 
-        /* ── MAIN LAYOUT ── */
-        #layout {
-            display: flex; gap: 0;
-            align-items: flex-start; padding: 16px;
-        }
+        /* ── LAYOUT ── */
+        #layout { display:flex;gap:0;align-items:flex-start;padding:16px; }
+        #leftCol { display:flex;flex-direction:column;flex-shrink:0;width:260px;margin-right:14px;gap:8px; }
+        #centre { flex:1;display:flex;flex-direction:column;align-items:center; }
 
-        /* ── LEFT: CRATE + WORKER COUNT ── */
-        #cratePanel {
-            background: #f0ead8; border: 2px solid #5a7a3a;
-            padding: 12px 10px;
-        }
-        #cratePanel h3 {
-            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-            color: #5a7a3a; border-bottom: 1px solid #aaa;
-            padding-bottom: 6px; margin-bottom: 10px;
-        }
-        #crateIcon {
-            width: 60px; height: 52px;
-            margin: 0 auto 10px; cursor: pointer;
-            position: relative; display: block; transition: transform 0.1s;
-        }
-        #crateIcon:hover  { transform: scale(1.08); }
-        #crateIcon:active { transform: scale(0.92); }
-        .crate-body { width: 60px; height: 40px; background: #b87830; border: 2px solid #6a4010; position: absolute; bottom: 0; left: 0; }
-        .crate-lid  { width: 66px; height: 13px; background: #cc8c40; border: 2px solid #6a4010; position: absolute; top: 0; left: -3px; }
-        .crate-strap-h { position: absolute; bottom: 11px; left: 0; width: 60px; height: 5px; background: #6a4010; }
-        .crate-strap-v { position: absolute; bottom: 0; left: 25px; width: 10px; height: 40px; background: #6a4010; }
+        /* ── CRATE PANEL ── */
+        #cratePanel { background:#f0ead8;border:2px solid #5a7a3a;padding:12px 10px; }
+        #cratePanel h3 { font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#5a7a3a;border-bottom:1px solid #aaa;padding-bottom:6px;margin-bottom:10px; }
+        #crateIcon { width:60px;height:52px;margin:0 auto 10px;cursor:pointer;position:relative;display:block;transition:transform 0.1s; }
+        #crateIcon:hover  { transform:scale(1.08); }
+        #crateIcon:active { transform:scale(0.92); }
+        .crate-body { width:60px;height:40px;background:#b87830;border:2px solid #6a4010;position:absolute;bottom:0;left:0; }
+        .crate-lid  { width:66px;height:13px;background:#cc8c40;border:2px solid #6a4010;position:absolute;top:0;left:-3px; }
+        .crate-strap-h { position:absolute;bottom:11px;left:0;width:60px;height:5px;background:#6a4010; }
+        .crate-strap-v { position:absolute;bottom:0;left:25px;width:10px;height:40px;background:#6a4010; }
+        #openCrateBtn { width:100%;font-family:"Courier New",monospace;font-size:12px;padding:7px 4px;background:#4a7a2a;color:#f0ead8;border:2px solid #2a5a0a;cursor:pointer;font-weight:bold; }
+        #openCrateBtn:hover    { background:#3a6a1a; }
+        #openCrateBtn:disabled { background:#888;border-color:#666;cursor:not-allowed; }
+        #crateCostLine  { font-size:11px;color:#666;margin-top:5px; }
+        #crateOpensLine { font-size:10px;color:#999;margin-top:2px; }
+        #crateScaleLine { font-size:10px;color:#b85020;margin-top:2px;font-weight:bold; }
+        #crateBuffBlock { margin-top:10px;border-top:1px solid #ccc;padding-top:8px;font-size:11px;color:#3a6a1a;font-weight:bold;min-height:24px; }
+        #buffTimer { font-size:10px;color:#888;font-weight:normal;margin-top:2px; }
 
-        #openCrateBtn {
-            width: 100%; font-family: "Courier New", monospace;
-            font-size: 12px; padding: 7px 4px;
-            background: #4a7a2a; color: #f0ead8;
-            border: 2px solid #2a5a0a; cursor: pointer; font-weight: bold;
+        /* ── INVENTORY ── */
+        #invPanel { background:#f0ead8;border:2px solid #5a7a3a;padding:10px; }
+        #invPanel h4 { font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a3a;border-bottom:1px solid #ccc;padding-bottom:5px;margin-bottom:8px; }
+        #crateInventoryGrid { display:grid;grid-template-columns:repeat(6,36px);gap:3px; }
+        .inv-slot {
+            width:36px;height:36px;
+            background:#7a6040;border:2px solid #4a3018;
+            box-shadow:inset 2px 2px 0 rgba(255,255,255,0.15),inset -2px -2px 0 rgba(0,0,0,0.35);
+            display:flex;align-items:center;justify-content:center;cursor:default;position:relative;
         }
-        #openCrateBtn:hover    { background: #3a6a1a; }
-        #openCrateBtn:disabled { background: #888; border-color: #666; cursor: not-allowed; }
+        .inv-slot-normal { background:#8a7050;border-color:#5a3a18;cursor:pointer; }
+        .inv-slot-normal:hover { background:#aa9060;border-color:#3a6a1a;box-shadow:0 0 0 1px #4a7a2a; }
+        .inv-slot-mercy  { background:#7a3858;border-color:#cc55aa;cursor:pointer; }
+        .inv-slot-mercy:hover  { background:#9a4870;border-color:#ff88cc;box-shadow:0 0 0 1px #cc55aa; }
+        .inv-slot-gold   { background:#5a4010;border-color:#f8d800;cursor:pointer;box-shadow:0 0 4px rgba(248,216,0,0.4); }
+        .inv-slot-gold:hover   { background:#7a5820;border-color:#ffe040;box-shadow:0 0 8px rgba(248,216,0,0.7); }
+        .inv-crate-icon { display:block; }
+        #crateInventoryOverflow { font-size:9px;color:#888;margin-top:4px;text-align:right; }
+        #invHint { font-size:9px;color:#888;margin-top:3px; }
 
-        #crateCostLine  { font-size: 11px; color: #666; margin-top: 5px; }
-        #crateOpensLine { font-size: 10px; color: #999; margin-top: 2px; }
-        #crateScaleLine { font-size: 10px; color: #b85020; margin-top: 2px; font-weight: bold; }
-
-        #crateBuffBlock {
-            margin-top: 10px; border-top: 1px solid #ccc; padding-top: 8px;
-            font-size: 11px; color: #3a6a1a; font-weight: bold; min-height: 24px;
+        /* ── GAMBLE BUTTON ── */
+        #gambleBtn {
+            width:100%;font-family:"Courier New",monospace;font-size:13px;padding:10px 4px;
+            background:#3a1a5a;color:#e8d8f8;border:2px solid #7a3aaa;cursor:pointer;font-weight:bold;
+            letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:8px;
         }
-        #buffTimer { font-size: 10px; color: #888; font-weight: normal; margin-top: 2px; }
+        #gambleBtn:hover { background:#4a2a6a; }
 
-        /* ── CENTRE ── */
-        #centre { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        /* ── COUNT BOXES ── */
+        .count-box { background:#f0ead8;border:2px solid #5a7a3a;padding:10px; }
+        .count-box h4 { font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#5a7a3a;border-bottom:1px solid #ccc;padding-bottom:5px;margin-bottom:6px; }
+        .count-big { font-size:22px;font-weight:bold;color:#2a4a1a; }
+        .count-sub { font-size:10px;color:#888;margin-top:3px; }
+        #overseerMultLine { font-size:11px;color:#6a3a8a;font-weight:bold;margin-top:4px; }
 
-        #gameArea {
-            position: relative; width: 860px; height: 560px;
-            border: 3px solid #5a7a3a;
-            background-image: url('images/background.png');
-            background-size: cover; background-position: center; overflow: hidden;
-        }
-        #cottonButton { width: 380px; cursor: pointer; position: absolute; left: 240px; top: 190px; }
-        .worker   { position: absolute; width: 80px; }
-        .overseer { position: absolute; width: 90px; }
-        .manor    { pointer-events: none; width: 195px; }
-
-        @keyframes clickPop {
-            0% { transform: scale(1); } 50% { transform: scale(0.85); } 100% { transform: scale(1); }
-        }
-        .clicked { animation: clickPop 0.16s ease; }
-
-        .popNumber {
-            position: fixed; color: #1a4a0a; font-weight: bold;
-            pointer-events: none; font-size: 17px;
-            font-family: "Courier New", monospace;
-            animation: floatUp 1s ease-out forwards;
-        }
-        @keyframes floatUp {
-            0%   { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-50px); }
-        }
+        /* ── GAME AREA ── */
+        #gameArea { position:relative;width:860px;height:560px;border:3px solid #5a7a3a;background-image:url('images/background.png');background-size:cover;background-position:center;overflow:hidden; }
+        #cottonButton { width:380px;cursor:pointer;position:absolute;left:240px;top:190px; }
+        .worker   { position:absolute;width:80px; }
+        .overseer { position:absolute;width:90px; }
+        .manor    { pointer-events:none;width:195px; }
+        @keyframes clickPop { 0%{transform:scale(1);}50%{transform:scale(0.85);}100%{transform:scale(1);} }
+        .clicked { animation:clickPop 0.16s ease; }
+        .popNumber { position:fixed;color:#1a4a0a;font-weight:bold;pointer-events:none;font-size:17px;font-family:"Courier New",monospace;animation:floatUp 1s ease-out forwards; }
+        @keyframes floatUp { 0%{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-50px);} }
 
         /* ── SHOP ── */
-        #shopPanel {
-            width: 860px; margin-top: 12px;
-            background: #f0ead8; border: 2px solid #5a7a3a; padding: 12px 14px;
-        }
-        #shopPanel h3 {
-            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-            color: #5a7a3a; border-bottom: 1px solid #ccc;
-            padding-bottom: 6px; margin-bottom: 10px;
-        }
-        .shop-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-        .shop-row-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
-
-        .shopbtn {
-            font-family: "Courier New", monospace; font-size: 13px;
-            padding: 8px 14px; background: #f0ead8;
-            border: 2px solid #5a7a3a; cursor: pointer; color: #2a4a1a; white-space: nowrap;
-        }
-        .shopbtn:hover  { background: #e0d4b8; }
-        .shopbtn.locked { opacity: 0.4; cursor: not-allowed; background: #e8e4d8; border-color: #aaa; color: #888; }
-        .shopbtn.bought { text-decoration: line-through; opacity: 0.35; cursor: not-allowed; }
-        .shopbtn.tier1         { border-color: #6a9a3a; }
-        .shopbtn.tier2         { border-color: #3a6aaa; }
-        .shopbtn.tier3         { border-color: #8a3aaa; }
-        .shopbtn.tier4         { border-color: #aa5500; }
-        .shopbtn.field-upgrade    { border-color: #aa7a2a; }
-        .shopbtn.manor-upgrade    { border-color: #8a3030; }
-        .shopbtn.overseer-upgrade { border-color: #6a3a8a; }
-
-        /* Left column wraps crate + count boxes */
-        #leftCol {
-            display: flex; flex-direction: column;
-            flex-shrink: 0; width: 160px; margin-right: 14px; gap: 8px;
-        }
-        #leftCol #cratePanel { margin-right: 0; }
-
-        /* Worker / Overseer count panels */
-        .count-box {
-            background: #f0ead8; border: 2px solid #5a7a3a;
-            padding: 10px;
-        }
-        .count-box h4 {
-            font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
-            color: #5a7a3a; border-bottom: 1px solid #ccc;
-            padding-bottom: 5px; margin-bottom: 6px;
-        }
-        .count-big { font-size: 22px; font-weight: bold; color: #2a4a1a; }
-        .count-sub { font-size: 10px; color: #888; margin-top: 3px; }
-        #overseerMultLine { font-size: 11px; color: #6a3a8a; font-weight: bold; margin-top: 4px; }
+        #shopPanel { width:860px;margin-top:12px;background:#f0ead8;border:2px solid #5a7a3a;padding:12px 14px; }
+        #shopPanel h3 { font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#5a7a3a;border-bottom:1px solid #ccc;padding-bottom:6px;margin-bottom:10px; }
+        .shop-row { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px; }
+        .shop-row-label { font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px; }
+        .shopbtn { font-family:"Courier New",monospace;font-size:13px;padding:8px 14px;background:#f0ead8;border:2px solid #5a7a3a;cursor:pointer;color:#2a4a1a;white-space:nowrap; }
+        .shopbtn:hover  { background:#e0d4b8; }
+        .shopbtn.locked { opacity:0.4;cursor:not-allowed;background:#e8e4d8;border-color:#aaa;color:#888; }
+        .shopbtn.bought { text-decoration:line-through;opacity:0.35;cursor:not-allowed; }
+        .shopbtn.tier1         { border-color:#6a9a3a; }
+        .shopbtn.tier2         { border-color:#3a6aaa; }
+        .shopbtn.tier3         { border-color:#8a3aaa; }
+        .shopbtn.tier4         { border-color:#aa5500; }
+        .shopbtn.field-upgrade    { border-color:#aa7a2a; }
+        .shopbtn.manor-upgrade    { border-color:#8a3030; }
+        .shopbtn.overseer-upgrade { border-color:#6a3a8a; }
 
         /* ── ACHIEVEMENTS ── */
-        #achievePanel {
-            width: 180px; flex-shrink: 0;
-            background: #f0ead8; border: 2px solid #5a7a3a;
-            padding: 12px 10px; margin-left: 14px;
-            max-height: 780px; overflow-y: auto;
-        }
-        #achievePanel h3 {
-            font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-            color: #5a7a3a; border-bottom: 1px solid #aaa;
-            padding-bottom: 6px; margin-bottom: 10px;
-        }
-        .ach-item {
-            display: flex; align-items: center; gap: 8px;
-            padding: 5px 4px; margin-bottom: 4px;
-            border: 1px solid #ccc; background: #e8e4d8;
-            font-size: 11px; opacity: 0.38;
-        }
-        .ach-item.unlocked { background: #f5eecc; border-color: #b89830; opacity: 1; }
-        .ach-badge {
-            width: 26px; height: 26px; background: #ccc; border: 2px solid #aaa;
-            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-            font-size: 9px; font-weight: bold; color: #777;
-        }
-        .ach-item.unlocked .ach-badge { background: #b89830; border-color: #8a6820; color: #fff; }
-        .ach-name { font-weight: bold; display: block; color: #222; font-size: 11px; }
-        .ach-desc { color: #888; font-size: 10px; }
-        #achCount { font-size: 10px; color: #999; margin-top: 6px; text-align: center; }
+        #achievePanel { width:180px;flex-shrink:0;background:#f0ead8;border:2px solid #5a7a3a;padding:12px 10px;margin-left:14px;max-height:780px;overflow-y:auto; }
+        #achievePanel h3 { font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#5a7a3a;border-bottom:1px solid #aaa;padding-bottom:6px;margin-bottom:10px; }
+        .ach-item { display:flex;align-items:center;gap:8px;padding:5px 4px;margin-bottom:4px;border:1px solid #ccc;background:#e8e4d8;font-size:11px;opacity:0.38; }
+        .ach-item.unlocked { background:#f5eecc;border-color:#b89830;opacity:1; }
+        .ach-badge { width:26px;height:26px;background:#ccc;border:2px solid #aaa;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;color:#777; }
+        .ach-item.unlocked .ach-badge { background:#b89830;border-color:#8a6820;color:#fff; }
+        .ach-name { font-weight:bold;display:block;color:#222;font-size:11px; }
+        .ach-desc { color:#888;font-size:10px; }
+        #achCount { font-size:10px;color:#999;margin-top:6px;text-align:center; }
 
         /* ── TOAST ── */
-        #achievementToast {
-            position: fixed; bottom: 50px; left: 50%;
-            transform: translateX(-50%);
-            background: #f0ead8; border: 2px solid #b89830;
-            padding: 8px 18px; font-size: 14px; display: none;
-            z-index: 9999; color: #333; white-space: nowrap;
-            font-family: "Courier New", monospace;
-        }
-        @keyframes fadeInOut {
-            0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
-            15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
-            75%  { opacity: 1; }
-            100% { opacity: 0; }
-        }
+        #achievementToast { position:fixed;bottom:50px;left:50%;transform:translateX(-50%);background:#f0ead8;border:2px solid #b89830;padding:8px 18px;font-size:14px;display:none;z-index:9999;color:#333;white-space:nowrap;font-family:"Courier New",monospace; }
+        @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(6px);}15%{opacity:1;transform:translateX(-50%) translateY(0);}75%{opacity:1;}100%{opacity:0;} }
 
         /* ── CRATE MODAL ── */
-        #crateModal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.55); z-index: 2000;
-            align-items: center; justify-content: center;
+        #crateModal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:center;justify-content:center; }
+        #crateModal.open { display:flex; }
+        #crateModalBox { background:#f0ead8;border:3px solid #5a7a3a;padding:24px 22px 20px;width:640px;max-width:95vw;text-align:center;font-family:"Courier New",monospace; }
+        #crateModalBox h2 { font-size:16px;color:#2a4a1a;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px; }
+        #spinnerTrack { overflow:hidden;width:100%;height:100px;border:2px solid #5a7a3a;position:relative;background:#e8e4d8; }
+        #spinnerTrack::before { content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:#4a7a2a;z-index:10;transform:translateX(-50%); }
+        #spinnerArrow { position:absolute;top:-1px;left:calc(50% - 8px);width:0;height:0;z-index:11;border-left:8px solid transparent;border-right:8px solid transparent;border-top:13px solid #4a7a2a; }
+        #spinnerInner { display:flex;align-items:stretch;height:100%; }
+        .spinItem { width:100px;flex-shrink:0;margin:0 2px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:bold;padding:4px;line-height:1.3;text-align:center; }
+        .spinItem .spin-rarity { font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:0.6;margin-bottom:3px; }
+        .spinItem .spin-main   { font-size:11px;font-weight:bold; }
+        .spinItem.rarity-grey   { background:#e4e0d8;border-color:#aaa;color:#555; }
+        .spinItem.rarity-blue   { background:#d8e4f0;border-color:#5580bb;color:#2a5088; }
+        .spinItem.rarity-purple { background:#e8daf0;border-color:#8855bb;color:#5a2a88; }
+        .spinItem.rarity-pink   { background:#f0d8e4;border-color:#bb5580;color:#882a55; }
+        .spinItem.rarity-gold   { background:#f0e8c0;border-color:#c09830;color:#7a5800; }
+        #spinResult { display:none;margin-top:14px;padding:12px 16px;animation:resultPop 0.3s cubic-bezier(.17,.67,.35,1.4);text-align:left;border:2px solid transparent; }
+        @keyframes resultPop { 0%{transform:scale(0.6);opacity:0;}100%{transform:scale(1);opacity:1;} }
+        #spinResult .result-rarity { font-size:9px;text-transform:uppercase;letter-spacing:1.5px;display:block;margin-bottom:4px;opacity:0.6; }
+        #spinResult .result-name   { font-size:16px;font-weight:bold;display:block; }
+        #spinResult .result-desc   { font-size:12px;font-weight:normal;margin-top:3px;display:block;opacity:0.8; }
+        #spinResult.rarity-grey   { background:#e4e0d8;border-color:#aaa;color:#444; }
+        #spinResult.rarity-blue   { background:#d8e4f0;border-color:#5580bb;color:#1a4077; }
+        #spinResult.rarity-purple { background:#e8daf0;border-color:#8855bb;color:#4a1a77; }
+        #spinResult.rarity-pink   { background:#f0d8e4;border-color:#bb5580;color:#771a4a; }
+        #spinResult.rarity-gold   { background:#f0e8c0;border-color:#c09830;color:#5a3800; }
+        #closeModalBtn { margin-top:12px;background:#4a7a2a;color:#f0ead8;border:2px solid #2a5a0a;padding:8px 26px;font-size:14px;cursor:pointer;display:none;font-family:"Courier New",monospace;font-weight:bold; }
+        #closeModalBtn:hover { background:#3a6a1a; }
+
+        /* ══════════════════════════════════════════════
+           SLOT MACHINE — SILVER SLIPPER VINTAGE 2D
+        ══════════════════════════════════════════════ */
+        #slotModal {
+            display:none; position:fixed; inset:0;
+            background:rgba(10,6,4,0.93); z-index:4000;
+            align-items:center; justify-content:center;
+            overflow-y:auto; padding:20px 0;
         }
-        #crateModal.open { display: flex; }
-        #crateModalBox {
-            background: #f0ead8; border: 3px solid #5a7a3a;
-            padding: 24px 22px 20px; width: 640px; max-width: 95vw;
-            text-align: center; font-family: "Courier New", monospace;
-        }
-        #crateModalBox h2 {
-            font-size: 16px; color: #2a4a1a;
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+        #slotModal.open { display:flex; }
+
+        /* ── OUTER CABINET SHELL ── */
+        #slotMachineCabinet {
+            position:relative;
+            width:480px; max-width:96vw;
+            font-family:"Courier New",monospace;
+            user-select:none;
         }
 
-        /* The spinner track — fixed 640px wide box, items scroll inside */
-        #spinnerTrack {
-            overflow: hidden; width: 100%; height: 100px;
-            border: 2px solid #5a7a3a; position: relative; background: #e8e4d8;
-        }
-        /* Centre line */
-        #spinnerTrack::before {
-            content: ''; position: absolute; top: 0; bottom: 0; left: 50%;
-            width: 2px; background: #4a7a2a; z-index: 10; transform: translateX(-50%);
-        }
-        #spinnerArrow {
-            position: absolute; top: -1px; left: calc(50% - 8px);
-            width: 0; height: 0; z-index: 11;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 13px solid #4a7a2a;
-        }
-        #spinnerInner {
-            display: flex; align-items: stretch; height: 100%;
-            /* NO will-change here — we'll set it only during spin */
-        }
-        /* Each item: fixed 100px wide + 4px total gap (2px each side) = 104px slot */
-        .spinItem {
-            width: 100px; flex-shrink: 0;
-            margin: 0 2px;
-            border: 2px solid transparent;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            font-size: 11px; font-weight: bold;
-            padding: 4px 4px; line-height: 1.3; text-align: center;
-        }
-        .spinItem .spin-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 3px; }
-        .spinItem .spin-main   { font-size: 11px; font-weight: bold; }
-        .spinItem.rarity-grey   { background: #e4e0d8; border-color: #aaa;    color: #555; }
-        .spinItem.rarity-blue   { background: #d8e4f0; border-color: #5580bb; color: #2a5088; }
-        .spinItem.rarity-purple { background: #e8daf0; border-color: #8855bb; color: #5a2a88; }
-        .spinItem.rarity-pink   { background: #f0d8e4; border-color: #bb5580; color: #882a55; }
-        .spinItem.rarity-gold   { background: #f0e8c0; border-color: #c09830; color: #7a5800; }
+        /* ── CABINET SVG BODY (drawn as inline SVG background) ── */
+        /* We build the machine as stacked panels */
 
-        #spinResult {
-            display: none; margin-top: 14px; padding: 12px 16px;
-            animation: resultPop 0.3s cubic-bezier(.17,.67,.35,1.4);
-            text-align: left; border: 2px solid transparent;
+        /* TOP CAP — rounded silver chrome dome */
+        #slotTopCap {
+            height:60px; position:relative;
+            background:linear-gradient(180deg,
+                #d0d0d0 0%, #a8a8a8 25%, #c8c8c8 40%,
+                #888 60%, #b0b0b0 80%, #909090 100%);
+            border-radius:24px 24px 0 0;
+            border:3px solid #444;
+            border-bottom:none;
+            box-shadow:
+                inset 0 3px 0 rgba(255,255,255,0.5),
+                inset 0 -2px 0 rgba(0,0,0,0.3),
+                0 -2px 12px rgba(0,0,0,0.5);
         }
-        @keyframes resultPop {
-            0%   { transform: scale(0.6); opacity: 0; }
-            100% { transform: scale(1);   opacity: 1; }
+        /* chrome rivet line on cap */
+        #slotTopCap::after {
+            content:'';position:absolute;
+            bottom:8px;left:16px;right:16px;height:3px;
+            background:linear-gradient(90deg,transparent,#666 10%,#ccc 30%,#999 50%,#ccc 70%,#666 90%,transparent);
+            border-radius:2px;
         }
-        #spinResult .result-rarity { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 4px; opacity: 0.6; }
-        #spinResult .result-name   { font-size: 16px; font-weight: bold; display: block; }
-        #spinResult .result-desc   { font-size: 12px; font-weight: normal; margin-top: 3px; display: block; opacity: 0.8; }
-        #spinResult.rarity-grey   { background: #e4e0d8; border-color: #aaa;    color: #444; }
-        #spinResult.rarity-blue   { background: #d8e4f0; border-color: #5580bb; color: #1a4077; }
-        #spinResult.rarity-purple { background: #e8daf0; border-color: #8855bb; color: #4a1a77; }
-        #spinResult.rarity-pink   { background: #f0d8e4; border-color: #bb5580; color: #771a4a; }
-        #spinResult.rarity-gold   { background: #f0e8c0; border-color: #c09830; color: #5a3800; }
+        /* coin slot on top cap */
+        #slotCoinSlot {
+            position:absolute;top:14px;left:50%;transform:translateX(-50%);
+            width:36px;height:10px;
+            background:#1a1a1a;border:2px solid #555;border-radius:3px;
+            box-shadow:inset 0 2px 4px rgba(0,0,0,0.8);
+        }
 
-        #closeModalBtn {
-            margin-top: 12px; background: #4a7a2a; color: #f0ead8;
-            border: 2px solid #2a5a0a; padding: 8px 26px;
-            font-size: 14px; cursor: pointer; display: none;
-            font-family: "Courier New", monospace; font-weight: bold;
+        /* ── FACE PANEL — red body ── */
+        #slotFace {
+            background:linear-gradient(160deg,
+                #c01010 0%, #940808 30%, #b81010 50%, #7a0606 70%, #a00c0c 100%);
+            border-left:3px solid #444; border-right:3px solid #444;
+            position:relative;
+            box-shadow:inset 2px 0 0 rgba(255,80,80,0.1), inset -2px 0 0 rgba(0,0,0,0.2);
         }
-        #closeModalBtn:hover { background: #3a6a1a; }
+        /* grime texture overlay */
+        #slotFace::before {
+            content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+            background:repeating-linear-gradient(
+                0deg, transparent, transparent 3px,
+                rgba(0,0,0,0.03) 3px, rgba(0,0,0,0.03) 4px);
+            mix-blend-mode:multiply;
+        }
 
-        /* ── RESET ── */
-        #resetBtn {
-            position: fixed; bottom: 16px; right: 16px;
-            font-family: "Courier New", monospace;
-            font-size: 12px; padding: 6px 12px;
-            background: #f0ead8; border: 2px solid #aaa; color: #888; cursor: pointer;
+        /* ── SILVER FRAME around reels ── */
+        #slotReelFrame {
+            position:relative;z-index:2;
+            margin:0 24px;
+            background:linear-gradient(180deg,#b8b8b8 0%,#888 20%,#aaa 50%,#787878 80%,#999 100%);
+            border:3px solid #333;
+            padding:3px;
+            box-shadow:
+                inset 0 2px 0 rgba(255,255,255,0.4),
+                inset 0 -2px 0 rgba(0,0,0,0.4),
+                0 4px 10px rgba(0,0,0,0.5);
         }
-        #resetBtn:hover { background: #e8e0d0; }
 
-        #muteBtn {
-            position: fixed; bottom: 16px; left: 16px;
-            font-family: "Courier New", monospace;
-            font-size: 12px; padding: 6px 12px;
-            background: #f0ead8; border: 2px solid #aaa; color: #888; cursor: pointer;
+        /* ── NAME PLATE ── */
+        #slotNamePlate {
+            background:linear-gradient(180deg,#f0e8d0,#d8c898,#f0e8d0);
+            border:2px solid #8a7040;
+            text-align:center;padding:5px 0 4px;
+            margin-bottom:3px;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.6);
         }
-        #muteBtn:hover { background: #e8e0d0; }
+        #slotNamePlate h2 {
+            font-size:20px;font-weight:bold;letter-spacing:5px;
+            color:#3a2000;
+            text-shadow:0 1px 0 rgba(255,255,255,0.4);
+            font-family:"Courier New",monospace;
+            margin:0;
+        }
+        #slotNamePlate .name-sub {
+            font-size:8px;letter-spacing:3px;color:#7a5820;
+            font-family:"Courier New",monospace;
+            display:block;margin-top:1px;
+        }
+
+        /* ── REEL HOUSING (inner black window) ── */
+        #slotReelHousing {
+            background:#0a0604;
+            border:2px inset #222;
+            position:relative;
+            padding:0;
+            box-shadow:inset 0 0 20px rgba(0,0,0,0.9);
+        }
+        /* payline */
+        #slotReelHousing::before {
+            content:'';position:absolute;
+            top:calc(50% - 1px);left:0;right:0;height:2px;
+            background:rgba(255,200,0,0.85);
+            z-index:30;pointer-events:none;
+            box-shadow:0 0 8px rgba(255,180,0,0.6);
+        }
+        /* top/bottom fade */
+        #slotReelHousing::after {
+            content:'';position:absolute;inset:0;pointer-events:none;
+            background:linear-gradient(180deg,
+                rgba(10,6,4,0.92) 0%,transparent 20%,transparent 80%,rgba(10,6,4,0.92) 100%);
+            z-index:25;
+        }
+        #slotReelsRow {
+            display:flex;gap:0;justify-content:stretch;
+        }
+        .slot-reel-wrap { position:relative;flex:1; }
+        .slot-reel {
+            width:100%;height:180px;overflow:hidden;
+            background:#080402;
+        }
+        .slot-reel-inner { display:flex;flex-direction:column;width:100%; }
+        .slot-symbol {
+            width:100%;height:60px;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            background:#060301;
+        }
+        .slot-sym-svg { width:44px;height:44px;display:block; }
+
+        /* Glass — clear with subtle glare */
+        .glass-overlay {
+            position:absolute;inset:0;pointer-events:none;z-index:20;
+            background:linear-gradient(125deg,
+                rgba(255,255,255,0.14) 0%,rgba(255,255,255,0.02) 45%,
+                rgba(0,0,0,0.05) 70%,rgba(255,255,255,0.04) 100%);
+        }
+        .glass-cracked {
+            position:absolute;inset:0;pointer-events:none;z-index:20;
+            background:linear-gradient(125deg,
+                rgba(255,255,255,0.11) 0%,rgba(255,255,255,0.02) 45%,
+                rgba(0,0,0,0.04) 70%,rgba(255,255,255,0.03) 100%);
+        }
+        .glass-cracked::after {
+            content:'';position:absolute;inset:0;
+            background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='180'%3E%3Cg stroke='rgba(255,255,255,0.5)' stroke-width='0.8' fill='none'%3E%3Cpath d='M55,15 L72,48 L48,78 L78,112 L62,145 L82,178'/%3E%3Cpath d='M72,48 L102,38 L118,62'/%3E%3Cpath d='M48,78 L24,96 L38,122'/%3E%3Cpath d='M78,112 L98,100 L116,118'/%3E%3C/g%3E%3Ccircle cx='57' cy='16' r='3.5' fill='rgba(255,255,255,0.28)'/%3E%3C/svg%3E") center/cover no-repeat;
+        }
+
+        /* Chrome dividers between reels */
+        .slot-reel-divider {
+            width:6px;flex-shrink:0;
+            background:linear-gradient(90deg,#333 0%,#777 35%,#bbb 50%,#777 65%,#333 100%);
+            box-shadow:inset 0 0 3px rgba(0,0,0,0.6);
+            position:relative;z-index:26;
+        }
+
+        /* ── PAYOUT TABLE ── */
+        #slotPayoutTable {
+            background:linear-gradient(180deg,#f5eed8,#e8dfc0,#f5eed8);
+            border:2px solid #8a7040;
+            margin-top:3px;padding:5px 8px 4px;
+            font-size:8px;font-family:"Courier New",monospace;
+            color:#3a2800;
+        }
+        .payout-row {
+            display:flex;justify-content:space-between;align-items:center;
+            padding:1px 0;border-bottom:1px solid rgba(0,0,0,0.08);
+            font-size:7.5px;letter-spacing:0.3px;
+        }
+        .payout-row:last-child { border-bottom:none; }
+        .payout-symbols { display:flex;gap:2px;align-items:center; }
+        .payout-dot {
+            width:7px;height:7px;border-radius:50%;display:inline-block;
+            border:1px solid rgba(0,0,0,0.2);
+        }
+        .payout-value { font-weight:bold;color:#8a5000;font-size:8px; }
+        .payout-title {
+            text-align:center;font-weight:bold;letter-spacing:2px;
+            font-size:7px;color:#5a3800;margin-bottom:3px;
+            border-bottom:1px solid #c0a060;padding-bottom:2px;
+            display:flex;justify-content:space-between;
+        }
+
+        /* ── BOTTOM BASE ── */
+        #slotBase {
+            background:linear-gradient(180deg,
+                #aaa 0%, #888 20%, #aaa 50%, #787878 80%, #999 100%);
+            border:3px solid #444;border-top:none;
+            height:28px;
+            border-radius:0 0 8px 8px;
+            box-shadow:0 6px 14px rgba(0,0,0,0.6),inset 0 2px 0 rgba(255,255,255,0.2);
+            position:relative;
+        }
+        /* coin tray slot */
+        #slotCoinTray {
+            position:absolute;top:8px;left:50%;transform:translateX(-50%);
+            width:80px;height:10px;
+            background:#111;border:2px solid #555;border-radius:2px;
+            box-shadow:inset 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* ── JACKPOT GLASS ── */
+        #slotJackpotGlass {
+            margin:0 60px;
+            background:linear-gradient(180deg,#1a1208,#2a1c0c);
+            border:2px solid #6a4a18;
+            padding:4px 0;text-align:center;position:relative;z-index:2;
+        }
+        #slotJackpotGlass span {
+            font-size:13px;letter-spacing:2px;color:#f0c040;
+            font-family:"Courier New",monospace;font-weight:bold;
+            text-shadow:0 0 8px #c09020,0 0 20px #806000;
+        }
+
+        /* ── PULL BUTTON ── */
+        #slotPullBtn {
+            display:block; width:100%;
+            font-family:"Courier New",monospace; font-size:16px;
+            font-weight:bold; letter-spacing:3px;
+            padding:14px 0;
+            background:radial-gradient(ellipse at 50% 30%, #cc1111, #880000);
+            color:#ffe0a0;
+            border:3px solid #ff3333;
+            border-bottom-color:#440000; border-right-color:#550000;
+            box-shadow:0 4px 0 #330000, 0 6px 12px rgba(0,0,0,0.5),
+                       inset 0 1px 0 rgba(255,150,150,0.3);
+            cursor:pointer;
+            text-shadow:0 1px 3px rgba(0,0,0,0.6);
+            transition:transform 0.12s, box-shadow 0.12s;
+        }
+        #slotPullBtn:hover:not(:disabled) {
+            background:radial-gradient(ellipse at 50% 30%, #ee2222, #aa0000);
+            box-shadow:0 4px 0 #330000, 0 6px 18px rgba(200,0,0,0.4),
+                       inset 0 1px 0 rgba(255,150,150,0.3);
+        }
+        #slotPullBtn:disabled {
+            background:#3a2020; border-color:#555; color:#664444;
+            box-shadow:0 2px 0 #1a1010; cursor:not-allowed;
+        }
+
+        /* ── WAGER / CONTROLS ── */
+        #slotControls {
+            margin:8px 24px 0;position:relative;z-index:3;
+        }
+        #slotWagerLabel {
+            font-size:8px;text-transform:uppercase;letter-spacing:2px;
+            color:#d0a060;display:block;margin-bottom:5px;
+            font-family:"Courier New",monospace;
+        }
+        #slotPresetRow { display:flex;gap:4px; }
+        .slot-wager-preset {
+            flex:1;font-family:"Courier New",monospace;font-size:11px;
+            padding:7px 2px;
+            background:linear-gradient(180deg,#5a3a18,#3a2008);
+            border:2px solid #7a5228;
+            color:#d0a040;cursor:pointer;font-weight:bold;letter-spacing:1px;
+            box-shadow:0 2px 0 #100800,inset 0 1px 0 rgba(255,180,80,0.15);
+            transition:all 0.07s;
+        }
+        .slot-wager-preset:hover { background:linear-gradient(180deg,#7a5228,#4a2c10);color:#f0c060; }
+        .slot-wager-preset:active { transform:translateY(1px);box-shadow:none; }
+        .slot-wager-preset.selected {
+            background:linear-gradient(180deg,#9a6a28,#6a3a0c);
+            border-color:#f0c040;color:#fff5c0;
+            box-shadow:0 0 10px rgba(220,160,0,0.4),0 2px 0 #100800;
+        }
+        #slotCurrentWager {
+            font-size:16px;font-weight:bold;color:#f0c040;
+            font-family:"Courier New",monospace;
+            text-shadow:0 0 5px rgba(200,140,0,0.4);
+            text-align:center;padding:5px 0 6px;
+            min-height:28px;letter-spacing:1px;
+        }
+
+        /* ── RESULT ── */
+        #slotResultMsg {
+            margin:6px 24px 0;padding:8px 12px;font-size:12px;font-weight:bold;
+            text-align:center;
+            background:#0a0602;border:1px solid #4a3010;
+            color:#b09050;min-height:36px;line-height:1.4;
+            font-family:"Courier New",monospace;letter-spacing:0.5px;
+        }
+        #slotResultMsg.win     { border-color:#336633;color:#77bb77;background:#040a04; }
+        #slotResultMsg.lose    { border-color:#773030;color:#cc7777;background:#0a0404; }
+        #slotResultMsg.jackpot { border-color:#b08020;color:#f0c800;background:#0e0800;text-shadow:0 0 8px #e0a000; }
+
+        /* close button */
+        #slotCloseBtn {
+            position:absolute;top:8px;right:8px;z-index:50;
+            background:rgba(0,0,0,0.5);border:1px solid #555;
+            border-radius:3px;cursor:pointer;
+            color:#888;font-size:13px;font-weight:bold;
+            font-family:"Courier New",monospace;
+            padding:2px 7px;line-height:1;
+        }
+        #slotCloseBtn:hover { color:#ccc;background:rgba(0,0,0,0.8); }
+
+        /* light blink */
+        .marquee-light {
+            width:8px;height:8px;border-radius:50%;display:inline-block;
+            background:#ffcc00;border:1px solid #886600;
+            box-shadow:0 0 4px #cc9900;
+            animation:lightBlink 1.3s ease-in-out infinite alternate;
+        }
+        .marquee-light:nth-child(2n){animation-delay:.4s;background:#ff6600;border-color:#662200;box-shadow:0 0 4px #aa3300;}
+        .marquee-light:nth-child(3n){animation-delay:.8s;background:#ffee00;border-color:#887700;box-shadow:0 0 4px #ccaa00;}
+        @keyframes lightBlink{0%{opacity:0.3;}100%{opacity:1;}}
+
+                /* ── MISC ── */
+        #resetBtn { position:fixed;bottom:16px;right:16px;font-family:"Courier New",monospace;font-size:12px;padding:6px 12px;background:#f0ead8;border:2px solid #aaa;color:#888;cursor:pointer; }
+        #resetBtn:hover { background:#e8e0d0; }
+        @keyframes critFlash { 0%{opacity:1;}100%{opacity:0;} }
+        @keyframes crateLidPop {
+            0%  {transform:translateY(0) rotate(0deg);opacity:1;}
+            35% {transform:translateY(-18px) rotate(-12deg);opacity:1;}
+            65% {transform:translateY(-14px) rotate(10deg);opacity:0.7;}
+            100%{transform:translateY(0) rotate(0deg);opacity:1;}
+        }
+        #crateIcon.popping .crate-lid { animation:crateLidPop 0.45s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+        @keyframes critPop { 0%{opacity:0;transform:translateX(-50%) scale(0.5);}20%{opacity:1;transform:translateX(-50%) scale(1.15);}60%{opacity:1;transform:translateX(-50%) scale(1);}100%{opacity:0;transform:translateX(-50%) scale(1);} }
+        #muteBtn { position:fixed;bottom:16px;left:16px;font-family:"Courier New",monospace;font-size:12px;padding:6px 12px;background:#f0ead8;border:2px solid #aaa;color:#888;cursor:pointer; }
+        #muteBtn:hover { background:#e8e0d0; }
     </style>
 </head>
 <body>
@@ -360,18 +503,18 @@
         <h2>Name Your Business</h2>
         <p>Give your cotton operation a name before you start.<br>You cannot change it without resetting.</p>
         <input type="text" id="businessNameInput" maxlength="32" placeholder="e.g. Greenfield Cotton Co." />
-        <button id="confirmNameBtn">Start Game</button>
+        <button id="confirmNameBtn" onclick="confirmBusinessName()">Start Game</button>
     </div>
 </div>
 
 <!-- TOP BAR -->
 <div id="topbar">
     <div id="topbar-left">
-        <h1 id="titleBtn" onclick="openSecretModal()" style="cursor:pointer;user-select:none;" title="">Cotton Picker</h1>
+        <h1 id="titleBtn" onclick="openSecretModal()" style="cursor:pointer;user-select:none;">Cotton Picker</h1>
         <div id="businessNameDisplay"></div>
     </div>
     <div id="stats-display">
-        <span id="cottonWordLabel">Cotton</span>: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span>
+        <span id="cottonWordLabel">Cotton</span>: <span id="cottonCount">0</span> &nbsp;|&nbsp; Per second: <span id="cps">0.00</span><span id="taxDisplay"></span>
     </div>
     <div></div>
 </div>
@@ -380,9 +523,7 @@
 <div id="secretModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;align-items:center;justify-content:center;">
     <div style="background:#f0ead8;border:2px solid #5a7a3a;padding:28px 32px;text-align:center;font-family:'Courier New',monospace;width:320px;">
         <div style="font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#5a7a3a;margin-bottom:14px;">Enter Code</div>
-        <input id="secretInput" type="password" maxlength="32"
-            style="font-family:'Courier New',monospace;font-size:16px;padding:8px 12px;border:2px solid #5a7a3a;background:#faf8f3;color:#2a4a1a;width:100%;margin-bottom:12px;outline:none;"
-            placeholder="..." />
+        <input id="secretInput" type="password" maxlength="32" style="font-family:'Courier New',monospace;font-size:16px;padding:8px 12px;border:2px solid #5a7a3a;background:#faf8f3;color:#2a4a1a;width:100%;margin-bottom:12px;outline:none;" placeholder="..." />
         <div id="secretMsg" style="font-size:12px;color:#aa3030;min-height:16px;margin-bottom:10px;"></div>
         <div style="display:flex;gap:8px;justify-content:center;">
             <button onclick="submitSecretCode()" style="font-family:'Courier New',monospace;font-size:13px;padding:7px 20px;background:#4a7a2a;color:#f0ead8;border:2px solid #2a5a0a;cursor:pointer;font-weight:bold;">Submit</button>
@@ -392,26 +533,46 @@
 </div>
 
 <div id="layout">
-
-    <!-- LEFT COLUMN -->
-    <div id="leftCol">
+  <div id="leftCol">
 
     <!-- CRATE -->
     <div id="cratePanel">
         <h3>Supply Crate</h3>
-        <div id="crateIcon" onclick="openCrateModal()" title="Open a crate">
+        <div id="crateIcon" title="Buy a crate">
             <div class="crate-lid"></div>
             <div class="crate-body">
                 <div class="crate-strap-v"></div>
                 <div class="crate-strap-h"></div>
             </div>
         </div>
-        <button id="openCrateBtn" onclick="openCrateModal()">Open Crate</button>
+        <button id="openCrateBtn" onclick="buyCrate()">Buy Crate</button>
         <div id="crateCostLine">Cost: <span id="crateCostVal">500</span> cotton</div>
-        <div id="crateOpensLine">Opened: <span id="crateOpensVal">0</span></div>
+        <div id="crateOpensLine">Bought: <span id="crateOpensVal">0</span></div>
         <div id="crateScaleLine" style="display:none">Price 2x after 10!</div>
+        <div id="hourlyQueueLine" style="display:none;"></div>
+        <div id="hourlyCountdownLine" style="display:none;font-size:10px;color:#888;margin-top:2px;"></div>
+        <div id="mercyLine" style="font-size:10px;color:#888;margin-top:3px;"></div>
+        <div id="freeCrateLine" style="display:none;font-size:11px;color:#8a5a00;margin-top:4px;font-weight:bold;"></div>
         <div id="crateBuffBlock">No active buff<div id="buffTimer"></div></div>
     </div>
+
+    <!-- CRATE INVENTORY -->
+    <div id="invPanel">
+        <h4>Crate Inventory</h4>
+        <div id="crateInventoryGrid"></div>
+        <div id="crateInventoryOverflow"></div>
+        <div id="invHint">Click a crate to open it</div>
+    </div>
+
+    <!-- GAMBLE -->
+    <button id="gambleBtn" onclick="openSlotModal()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="14" height="14" rx="2" fill="#1a0030" stroke="#9955dd" stroke-width="1.5"/>
+            <circle cx="4.5" cy="4.5" r="1.2" fill="#ffdd00"/><circle cx="8" cy="8" r="1.2" fill="#ffdd00"/><circle cx="11.5" cy="11.5" r="1.2" fill="#ffdd00"/>
+            <circle cx="11.5" cy="4.5" r="1.2" fill="#ffdd00"/><circle cx="4.5" cy="11.5" r="1.2" fill="#ffdd00"/>
+        </svg>
+        GAMBLE
+    </button>
 
     <!-- WORKER COUNT -->
     <div class="count-box">
@@ -428,78 +589,76 @@
         <div id="overseerMultLine" style="display:none"></div>
     </div>
 
-    </div><!-- end leftCol -->
+  </div><!-- end leftCol -->
 
-    <!-- CENTRE -->
-    <div id="centre">
-        <div id="gameArea">
-            <img src="images/cotton.png" id="cottonButton">
+  <!-- CENTRE -->
+  <div id="centre">
+    <div id="gameArea">
+        <img src="images/cotton.png" id="cottonButton">
+    </div>
+
+    <div id="shopPanel">
+        <h3>Shop</h3>
+        <div class="shop-row-label">Producers</div>
+        <div class="shop-row">
+            <button class="shopbtn" id="buyWorker">Hire Worker (10 cotton)</button>
+            <button class="shopbtn" id="buyField">Buy Field (7,500 cotton)</button>
+            <button class="shopbtn" id="buyManor">Build Manor (60,000 cotton)</button>
+            <button class="shopbtn" id="buyOverseer">Hire Overseer (1,000,000 cotton)</button>
         </div>
-
-        <!-- SHOP -->
-        <div id="shopPanel">
-            <h3>Shop</h3>
-
-            <div class="shop-row-label">Producers</div>
-            <div class="shop-row">
-                <button class="shopbtn" id="buyWorker">Hire Worker (10 cotton)</button>
-                <button class="shopbtn" id="buyField">Buy Field (7,500 cotton)</button>
-                <button class="shopbtn" id="buyManor">Build Manor (60,000 cotton)</button>
-                <button class="shopbtn" id="buyOverseer">Hire Overseer (1,000,000 cotton)</button>
-            </div>
-
-            <div class="shop-row-label" style="margin-top:8px;">Click Upgrades</div>
-            <div class="shop-row">
-                <button class="shopbtn tier1" id="clickUpgrade1Btn">2x Clicker I (150 cotton)</button>
-                <button class="shopbtn tier2 locked" id="clickUpgrade2Btn">2x Clicker II (1,000 cotton)</button>
-                <button class="shopbtn tier3 locked" id="clickUpgrade3Btn">2x Clicker III (2,500 cotton)</button>
-                <button class="shopbtn tier4 locked" id="clickUpgrade4Btn">Masters Touch (120,000 cotton)</button>
-                <button class="shopbtn tier4 locked" id="clickUpgrade5Btn">Dedicated Master (250,000 cotton)</button>
-            </div>
-
-            <div class="shop-row-label" style="margin-top:8px;">Worker Upgrades</div>
-            <div class="shop-row">
-                <button class="shopbtn tier1" id="workerUpgrade1Btn">2x Workers I (1,000 cotton)</button>
-                <button class="shopbtn tier2 locked" id="workerUpgrade2Btn">2x Workers II (3,000 cotton)</button>
-                <button class="shopbtn tier3 locked" id="workerUpgrade3Btn">2x Workers III (5,000 cotton)</button>
-            </div>
-
-            <div class="shop-row-label" style="margin-top:8px;">Field Upgrades</div>
-            <div class="shop-row">
-                <button class="shopbtn field-upgrade" id="fieldUpgrade1Btn">2x Field Output I (42,000 cotton)</button>
-                <button class="shopbtn field-upgrade locked" id="fieldUpgrade2Btn">2x Field Output II (150,000 cotton)</button>
-                <button class="shopbtn field-upgrade locked" id="fieldUpgrade3Btn">2x Field Output III (320,000 cotton)</button>
-            </div>
-
-            <div class="shop-row-label" style="margin-top:8px;">Manor Upgrades</div>
-            <div class="shop-row">
-                <button class="shopbtn manor-upgrade" id="manorUpgrade1Btn">2x Manor Output I (400,000 cotton)</button>
-                <button class="shopbtn manor-upgrade locked" id="manorUpgrade2Btn">2x Manor Output II (700,000 cotton)</button>
-                <button class="shopbtn manor-upgrade locked" id="manorUpgrade3Btn">2x Manor Output III (920,000 cotton)</button>
-            </div>
-
-            <div class="shop-row-label" style="margin-top:8px;">Overseer Upgrades</div>
-            <div class="shop-row">
-                <button class="shopbtn overseer-upgrade" id="overseerUpgrade1Btn">2x Overseer Output I (4,000,000 cotton)</button>
-                <button class="shopbtn overseer-upgrade locked" id="overseerUpgrade2Btn">2x Overseer Output II + 2x Worker Mult (7,650,000 cotton)</button>
-            </div>
+        <div class="shop-row-label" style="margin-top:8px;">Click Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn tier1" id="clickUpgrade1Btn">2x Clicker I (150 cotton)</button>
+            <button class="shopbtn tier2 locked" id="clickUpgrade2Btn">2x Clicker II (1,000 cotton)</button>
+            <button class="shopbtn tier3 locked" id="clickUpgrade3Btn">2x Clicker III (2,500 cotton)</button>
+            <button class="shopbtn tier4 locked" id="clickUpgrade4Btn">Masters Touch (120,000 cotton)</button>
+            <button class="shopbtn tier4 locked" id="clickUpgrade5Btn">Dedicated Master (450,000 cotton)</button>
         </div>
-
-        <!-- MASTERS TOUCH LEVEL BAR -->
-        <div id="mastersTouchBar" style="display:none; width:860px; margin-top:8px; background:#f0ead8; border:2px solid #6a3a8a; padding:10px 14px;">
-            <div id="mastersTouchLabel" style="font-size:12px; color:#4a2a7a; margin-bottom:6px; font-family:'Courier New',monospace;"></div>
-            <div style="background:#e0d8f0; border:1px solid #8a5acc; height:14px; border-radius:2px; overflow:hidden;">
-                <div id="mastersTouchFill" style="height:100%; background:#6a3aaa; width:0%; transition:width 0.3s;"></div>
-            </div>
+        <div class="shop-row-label" style="margin-top:8px;">Worker Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn tier1" id="workerUpgrade1Btn">2x Workers I (1,000 cotton)</button>
+            <button class="shopbtn tier2 locked" id="workerUpgrade2Btn">2x Workers II (3,000 cotton)</button>
+            <button class="shopbtn tier3 locked" id="workerUpgrade3Btn">2x Workers III (5,000 cotton)</button>
+        </div>
+        <div class="shop-row-label" style="margin-top:8px;">Field Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn field-upgrade" id="fieldUpgrade1Btn">2x Field Output I (42,000 cotton)</button>
+            <button class="shopbtn field-upgrade locked" id="fieldUpgrade2Btn">2x Field Output II (150,000 cotton)</button>
+            <button class="shopbtn field-upgrade locked" id="fieldUpgrade3Btn">2x Field Output III (320,000 cotton)</button>
+        </div>
+        <div class="shop-row-label" style="margin-top:8px;">Manor Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn manor-upgrade" id="manorUpgrade1Btn">2x Manor Output I (400,000 cotton)</button>
+            <button class="shopbtn manor-upgrade locked" id="manorUpgrade2Btn">2x Manor Output II (700,000 cotton)</button>
+            <button class="shopbtn manor-upgrade locked" id="manorUpgrade3Btn">2x Manor Output III (920,000 cotton)</button>
+        </div>
+        <div class="shop-row-label" style="margin-top:8px;">Crate Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn" id="crateRerollBtn" style="border-color:#c09830;">Reroll Chance (10,000 cotton) — 20% chance on each open to also spin a bonus reroll</button>
+            <button class="shopbtn" id="crateHourlyBtn" style="border-color:#5580bb;">Wait for the Crate (150,000 cotton) — 1 free crate added to inventory every 50 minutes</button>
+        </div>
+        <div class="shop-row-label" style="margin-top:8px;">Overseer Upgrades</div>
+        <div class="shop-row">
+            <button class="shopbtn overseer-upgrade" id="overseerUpgrade1Btn">2x Overseer Output I (4,000,000 cotton)</button>
+            <button class="shopbtn overseer-upgrade locked" id="overseerUpgrade2Btn">2x Overseer Output II + 2x Worker Mult (7,650,000 cotton)</button>
         </div>
     </div>
 
-    <!-- RIGHT: ACHIEVEMENTS -->
-    <div id="achievePanel">
-        <h3>Achievements</h3>
-        <div id="achievementList"></div>
-        <div id="achCount">0 / 13 unlocked</div>
+    <!-- MASTERS TOUCH LEVEL BAR -->
+    <div id="mastersTouchBar" style="display:none;width:860px;margin-top:8px;background:#f0ead8;border:2px solid #6a3a8a;padding:10px 14px;">
+        <div id="mastersTouchLabel" style="font-size:12px;color:#4a2a7a;margin-bottom:6px;font-family:'Courier New',monospace;"></div>
+        <div style="background:#e0d8f0;border:1px solid #8a5acc;height:14px;border-radius:2px;overflow:hidden;">
+            <div id="mastersTouchFill" style="height:100%;background:#6a3aaa;width:0%;transition:width 0.3s;"></div>
+        </div>
     </div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div id="achievePanel">
+      <h3>Achievements</h3>
+      <div id="achievementList"></div>
+      <div id="achCount">0 / 13 unlocked</div>
+  </div>
 
 </div>
 
@@ -516,15 +675,118 @@
     </div>
 </div>
 
-<!-- BACKGROUND MUSIC -->
-<audio id="bgMusic" loop>
-    <source src="music/background.mp3" type="audio/mpeg">
-</audio>
-<button id="muteBtn" onclick="toggleMute()" title="Toggle music">Music: ON</button>
+<!-- SLOT MACHINE MODAL -->
+<div id="slotModal">
+<div id="slotMachineCabinet">
+    <button id="slotCloseBtn" onclick="closeSlotModal()">X</button>
 
+    <!-- TOP CAP -->
+    <div id="slotTopCap">
+        <div id="slotCoinSlot"></div>
+        <!-- decorative lights row -->
+        <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:10px;">
+            <div class="marquee-light"></div><div class="marquee-light"></div>
+            <div class="marquee-light"></div><div class="marquee-light"></div>
+            <div class="marquee-light"></div><div class="marquee-light"></div>
+        </div>
+    </div>
+
+    <!-- FACE -->
+    <div id="slotFace">
+
+        <!-- SILVER FRAME + REELS -->
+        <div id="slotReelFrame">
+
+            <!-- Name plate -->
+            <div id="slotNamePlate">
+                <h2 id="slotMarqueeTitle">LUCKY PICKER</h2>
+                <span class="name-sub">Cotton Casino &mdash; Est. 1887</span>
+            </div>
+
+            <!-- Reel window -->
+            <div id="slotReelHousing">
+                <div id="slotReelsRow">
+                    <div class="slot-reel-wrap">
+                        <div class="slot-reel" id="slotReel0"><div class="slot-reel-inner" id="slotReelInner0"></div></div>
+                        <div class="glass-cracked"></div>
+                    </div>
+                    <div class="slot-reel-divider"></div>
+                    <div class="slot-reel-wrap">
+                        <div class="slot-reel" id="slotReel1"><div class="slot-reel-inner" id="slotReelInner1"></div></div>
+                        <div class="glass-overlay"></div>
+                    </div>
+                    <div class="slot-reel-divider"></div>
+                    <div class="slot-reel-wrap">
+                        <div class="slot-reel" id="slotReel2"><div class="slot-reel-inner" id="slotReelInner2"></div></div>
+                        <div class="glass-overlay"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payout table (like on the real machine) -->
+            <div id="slotPayoutTable">
+                <div class="payout-title"><span>PAY TABLE</span><span>COMBINATIONS</span></div>
+                <div class="payout-row">
+                    <div class="payout-symbols" style="font-size:9px;letter-spacing:1px;color:#33ddff;font-weight:bold;">&#9670; &#9670; &#9670;</div>
+                    <div style="flex:1;padding:0 6px;">Three Diamonds</div>
+                    <div class="payout-value">15x JACKPOT</div>
+                </div>
+                <div class="payout-row">
+                    <div class="payout-symbols" style="font-size:9px;color:#fff;font-weight:bold;">7 &nbsp; 7 &nbsp; 7</div>
+                    <div style="flex:1;padding:0 6px;">Three Sevens</div>
+                    <div class="payout-value">3x</div>
+                </div>
+                <div class="payout-row">
+                    <div class="payout-symbols" style="font-size:9px;color:#2233aa;font-weight:bold;">B &nbsp; B &nbsp; B</div>
+                    <div style="flex:1;padding:0 6px;">Three Bars</div>
+                    <div class="payout-value">2x</div>
+                </div>
+                <div class="payout-row">
+                    <div class="payout-symbols" style="font-size:9px;color:#f8d800;font-weight:bold;">&#9670; &#9670; &mdash;</div>
+                    <div style="flex:1;padding:0 6px;">Two Diamonds</div>
+                    <div class="payout-value">-20%</div>
+                </div>
+                <div class="payout-row">
+                    <div class="payout-symbols" style="font-size:9px;color:#f8d800;font-weight:bold;">&#9670; &mdash; &mdash;</div>
+                    <div style="flex:1;padding:0 6px;">One Diamond</div>
+                    <div class="payout-value">-50%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JACKPOT GLASS -->
+        <div id="slotJackpotGlass"><span id="slotJackpotAmt">JACKPOT &mdash; 15x</span></div>
+
+        <!-- WAGER + RESULT -->
+        <div id="slotControls">
+            <label id="slotWagerLabel">INSERT COINS</label>
+            <div id="slotCurrentWager">Select amount below</div>
+            <div id="slotPresetRow">
+                <button class="slot-wager-preset" onclick="slotPreset(0.1,this)">10%</button>
+                <button class="slot-wager-preset" onclick="slotPreset(0.25,this)">25%</button>
+                <button class="slot-wager-preset" onclick="slotPreset(0.5,this)">50%</button>
+                <button class="slot-wager-preset" onclick="slotPreset(1,this)">ALL IN</button>
+            </div>
+        </div>
+        <button id="slotPullBtn" onclick="handlePull()" style="margin:10px 24px 0;">PULL</button>
+        <div id="slotResultMsg" style="margin-top:8px;">Select wager and pull!</div>
+
+
+
+    </div><!-- end slotFace -->
+
+    <!-- BASE -->
+    <div id="slotBase">
+        <div id="slotCoinTray"></div>
+    </div>
+
+</div><!-- end cabinet -->
+</div>
+
+<audio id="bgMusic" loop><source src="music/background.mp3" type="audio/mpeg"></audio>
+<button id="muteBtn" onclick="toggleMute()" title="Toggle music">Music: ON</button>
 <div id="achievementToast"></div>
 <button id="resetBtn" onclick="resetGame()">Reset</button>
-
 <script src="script.js"></script>
 </body>
 </html>
